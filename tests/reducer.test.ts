@@ -163,6 +163,14 @@ describe('property economy', () => {
     expect(upgraded.session.state.board.tiles['t1']?.level).toBe(1);
   });
 
+  it('does not inflate net worth when a property is mortgaged', () => {
+    const owned = ownTile(boot(), 't4', 'p1', 0);
+    const withProperty = sessionNetWorth(owned, 'p1');
+    const mortgaged = applyIntent(owned, msg('INTENT_MORTGAGE', 'p1', { tileId: 't4' }));
+    expect(mortgaged.rejected).toBeNull();
+    expect(sessionNetWorth(mortgaged.session, 'p1')).toBe(withProperty);
+  });
+
   it('mortgages and redeems a property', () => {
     const session = ownTile(boot(), 't4', 'p1', 0);
     const before = moneyOf(session, 'p1');
@@ -239,6 +247,17 @@ describe('board effects', () => {
     expect(session.state.minigame).toBeNull();
     expect(['AWAIT_END_TURN', 'AWAIT_CHOICE']).toContain(session.state.phase);
     expect(session.state.players.find((player) => player.id === 'p1')?.position.zone).toBe('ring');
+  });
+
+  it('refuses a centre exit from a player the engine is not waiting on', () => {
+    const session = patchSession(placeInCenter(boot(), 'p1', 'c_plaza'), (state) => ({
+      ...state,
+      activePlayerIndex: 1,
+      pendingChoice: null,
+    }));
+    expect(applyIntent(session, msg('INTENT_ENTER_CENTER', 'p1', { nodeId: 't0' })).rejected).toBe(
+      'not-your-turn',
+    );
   });
 
   it('requires an explicit exit when the centre entry is unknown', () => {

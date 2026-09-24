@@ -139,6 +139,11 @@ function netWorth(session: GameSession, player: Player): number {
     const price = session.priceByTileId.get(property.tileId);
     if (price === undefined) continue;
     total += propertyInvested(session.state.economy, price, property.level);
+    // A mortgaged property is pledged: the loan must not count as net worth,
+    // otherwise mortgaging would inflate the player towards the asset target.
+    if (property.mortgaged) {
+      total -= mortgageValueFor(session, price, property.level);
+    }
   }
   return total;
 }
@@ -1275,6 +1280,14 @@ function applyEnterCenter(
   const player = findPlayer(state, intent.from);
   if (player === undefined) return reject(session, 'unknown-player');
   if (player.position.zone !== 'center') return reject(session, 'not-in-center');
+
+  const pending = state.pendingChoice;
+  const isPendingExit =
+    pending !== null && pending.kind === 'CENTER_EXIT' && pending.playerId === intent.from;
+  const isActive = state.players[state.activePlayerIndex]?.id === intent.from;
+  if (!isPendingExit && !isActive) return reject(session, 'not-your-turn');
+  if (state.phase === 'GAME_OVER') return reject(session, 'game-over');
+
   const index = session.geometry.ringIndexById[intent.payload.nodeId];
   if (index === undefined) return reject(session, 'unknown-ring-tile');
   let next = replacePlayerState(state, withRingPosition(player, index));
