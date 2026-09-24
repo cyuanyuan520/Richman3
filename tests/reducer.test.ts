@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { ClientIntentMessage } from '../src/engine/contracts/net';
+import type { MapDefinition } from '../src/engine/contracts/content';
 import {
   applyIntent,
   resolveCurrentLanding,
@@ -15,6 +16,7 @@ import {
   placeOnRing,
   setMoney,
   TEST_MINIGAMES,
+  TEST_MAP,
 } from './fixtures/content';
 
 let sequence = 0;
@@ -202,6 +204,23 @@ describe('board effects', () => {
     const result = resolveCurrentLanding(placeOnRing(session, 'p1', 5), 'p1');
     expect(result.events.some((event) => event.type === 'TAX_DUE')).toBe(true);
     expect(moneyOf(result.session, 'p1')).toBe(9_000);
+  });
+
+  it('applies the tile onEnter effects after the type behaviour', () => {
+    const map: MapDefinition = {
+      ...TEST_MAP,
+      board: {
+        ...TEST_MAP.board,
+        ring: TEST_MAP.board.ring.map((tile) =>
+          tile.id === 't9' ? { ...tile, onEnter: [{ kind: 'MONEY', value: -100 }] } : tile,
+        ),
+      },
+    };
+    const started = startGame(makeSession({ map })).session;
+    const before = moneyOf(started, 'p1');
+    const result = resolveCurrentLanding(placeOnRing(started, 'p1', 9), 'p1');
+    // BONUS grants 2000 first, then onEnter deducts 100.
+    expect(moneyOf(result.session, 'p1')).toBe(before + 2000 - 100);
   });
 
   it('jails the player for the configured number of turns', () => {

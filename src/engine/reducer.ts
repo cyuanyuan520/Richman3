@@ -8,7 +8,13 @@
  * always produces an identical state hash.
  */
 
-import type { ChaosEvent, Character, MapDefinition, MiniGameDefinition } from './contracts/content';
+import type {
+  ChaosEvent,
+  Character,
+  MapDefinition,
+  MiniGameDefinition,
+  RingTile,
+} from './contracts/content';
 import type { ClientIntentMessage } from './contracts/net';
 import type { GameEvent, GameState, MiniGameState, PendingChoice, Player } from './contracts/state';
 import { MAX_EVENT_LOG } from './contracts/state';
@@ -537,6 +543,38 @@ function resolveRingLanding(
   if (player === undefined || player.position.zone !== 'ring') return state;
   const tile = session.map.board.ring[player.position.index];
   if (tile === undefined) return state;
+
+  let next = applyTileBehaviour(session, state, playerId, tile, emitter, depth);
+  if (tile.onEnter !== undefined && tile.onEnter.length > 0) {
+    const outcome = applyEffects(
+      next,
+      playerId,
+      playerId,
+      tile.onEnter,
+      session.geometry,
+      session.registry,
+    );
+    next = outcome.state;
+    for (const note of outcome.notes) {
+      const event = noteToEvent(note);
+      emitter.push(event.type, event.playerId, event.data);
+    }
+    next = settleInsolvency({ ...session, state: next }, playerId, null, emitter);
+  }
+  return next;
+}
+
+/** Type-specific landing behaviour, before the tile's own `onEnter` effects. */
+function applyTileBehaviour(
+  session: GameSession,
+  state: GameState,
+  playerId: string,
+  tile: RingTile,
+  emitter: Emitter,
+  depth: number,
+): GameState {
+  const player = findPlayer(state, playerId);
+  if (player === undefined) return state;
   let next = state;
 
   switch (tile.type) {
