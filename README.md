@@ -49,7 +49,7 @@ pnpm preview       # 预览生产构建
 ```text
 src/
   App.tsx            引导场景（后续被大厅/棋盘/ HUD 替换）
-  lib/room-code.ts   房间标识契约（分享链接 / 6 位房间码，REQ-029 / SEC-006）
+  lib/room-code.ts   房间标识契约（分享链接 / 6 位房间码 / Host peer id，REQ-029 / SEC-003 / SEC-006）
   engine/            确定性规则引擎与数据契约（P2）
   content/           角色、恶搞事件、地图等数据包（P3）
   net/               Host 权威联机协议与传输（P4）
@@ -57,8 +57,13 @@ src/
   ui/                菜单 / 房间 / 设置 / 规则页 / HUD（P6）
 scripts/             Blender 资产构建脚本（P5）
 public/models/       程序化生成的 GLB（P5，随仓库提交）
+public/bgm/          BGM 素材（`double-sixes.mp3`、`top-hat-and-thimble.mp3`，Vite 原样发布到 `/bgm/*`）
 docs/                补充文档
 ```
+
+> **房间标识约定**：`roomId` 形如 `rm3-<21 位 nanoid>`（分享链接使用）；`roomCode` 为 6 位免混淆短码，
+> **仅作定位**，不是授权凭证（需房主同意 + 限流）；Host peer id 由代码派生为 `rm3-<roomCode>`。
+> 注意：访谈规格中的示例 `rm3-V1StGXR8Z5jdHi6B-myT` 正文只有 20 位，实际实现为 **21 位**。
 
 ## 开发约定
 

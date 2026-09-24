@@ -42,10 +42,35 @@ export function makeRoomId(body: string): string | null {
   return isValidRoomId(candidate) ? candidate : null;
 }
 
-/** Builds the shareable URL for a room: `<origin>/?room=<roomId>`. */
-export function buildShareUrl(origin: string, roomId: string): string {
+/** Builds the shareable URL for a room: `<origin>/?room=<roomId>`.
+ *
+ * Returns `null` for a malformed `roomId` so a broken invite link can never be
+ * produced. Callers must handle the `null` case (there is no throw).
+ */
+export function buildShareUrl(origin: string, roomId: string): string | null {
+  if (!isValidRoomId(roomId)) {
+    return null;
+  }
   const base = origin.endsWith('/') ? origin : `${origin}/`;
   return `${base}?${ROOM_QUERY_PARAM}=${encodeURIComponent(roomId)}`;
+}
+
+/**
+ * Derives the namespaced PeerJS id of the host that owns a room code (SEC-006).
+ *
+ * A typed 6-char room code is only a *locator*: without any server-side lookup,
+ * the only way it can find a host is if the host's peer id is derivable from the
+ * code. Namespacing (`rm3-`) keeps these ids from colliding with unrelated apps
+ * on the public PeerJS cloud.
+ *
+ * Returns `null` when `roomCode` is not a valid code.
+ */
+export function makePeerId(roomCode: string): string | null {
+  const code = normalizeRoomCode(roomCode);
+  if (!code) {
+    return null;
+  }
+  return `${ROOM_NAMESPACE}${code}`;
 }
 
 /**

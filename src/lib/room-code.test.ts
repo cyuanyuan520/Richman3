@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   buildShareUrl,
   isValidRoomId,
+  makePeerId,
   makeRoomId,
   normalizeRoomCode,
   readRoomIdFromSearch,
@@ -12,6 +13,7 @@ import {
 } from './room-code';
 
 const VALID_ROOM_ID = `${ROOM_NAMESPACE}V1StGXR8Z5jdHi6B-myTz`;
+const VALID_ROOM_CODE = '7K9Q2M';
 
 describe('room id fixture', () => {
   it('matches the documented shape (namespace + 21-char nanoid)', () => {
@@ -64,6 +66,32 @@ describe('buildShareUrl', () => {
     expect(buildShareUrl('http://localhost:5173', VALID_ROOM_ID)).toContain(
       `?room=${encodeURIComponent(VALID_ROOM_ID)}`,
     );
+  });
+
+  it('returns null instead of building a broken invite link', () => {
+    expect(buildShareUrl('https://example.vercel.app', 'not-a-room')).toBeNull();
+    expect(buildShareUrl('https://example.vercel.app', '')).toBeNull();
+  });
+});
+
+describe('makePeerId', () => {
+  it('derives a namespaced host peer id from a room code', () => {
+    expect(makePeerId(VALID_ROOM_CODE)).toBe(`${ROOM_NAMESPACE}${VALID_ROOM_CODE}`);
+  });
+
+  it('accepts messy user input (case, spaces, dashes)', () => {
+    expect(makePeerId(' 7k9-q2m ')).toBe(`${ROOM_NAMESPACE}${VALID_ROOM_CODE}`);
+  });
+
+  it('returns null for an invalid room code', () => {
+    expect(makePeerId('abc')).toBeNull();
+    expect(makePeerId('OOII00')).toBeNull();
+  });
+
+  it('never produces a peer id that collides with a room id shape', () => {
+    const peerId = makePeerId(VALID_ROOM_CODE);
+    expect(peerId).not.toBeNull();
+    expect(isValidRoomId(peerId ?? '')).toBe(false);
   });
 });
 

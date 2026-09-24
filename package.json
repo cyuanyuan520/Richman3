@@ -4,6 +4,7 @@
   "version": "0.1.0",
   "description": "Q版 3D 大富翁桌面网页游戏 (Vite + React + TypeScript + React Three Fiber)",
   "type": "module",
+  "packageManager": "pnpm@12.4.1",
   "engines": {
     "node": ">=24"
   },

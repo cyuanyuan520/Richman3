@@ -5,5 +5,5 @@ playwright-report
 test-results
 pnpm-lock.yaml
 public/models
-bgm
+public/bgm
 interview
