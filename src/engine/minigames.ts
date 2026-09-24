@@ -7,6 +7,7 @@
  */
 
 import type { MiniGameKind } from './contracts/primitives';
+import { compareCodeUnits } from './hash';
 import { rngFloat, rngInt } from './rng';
 
 export interface MiniGameResolutionInput {
@@ -39,7 +40,7 @@ function rankByScore(
 ): (readonly [string, number])[] {
   const ordered = participantIds
     .map((id) => ({ id, score: scores[id] ?? 0 }))
-    .sort((a, b) => b.score - a.score || a.id.localeCompare(b.id));
+    .sort((a, b) => b.score - a.score || compareCodeUnits(a.id, b.id));
   const ranks: (readonly [string, number])[] = [];
   let previousScore: number | null = null;
   let previousRank = 0;
@@ -65,7 +66,7 @@ export const resolveWheel: MiniGameResolver = ({ seed, cursor, participantIds })
 };
 
 /** Rock-paper-scissors; score is the number of opponents beaten. */
-export const resolveRps: MiniGameResolver = ({ seed, cursor, participantIds, submissions }) => {
+export const resolveRps: MiniGameResolver = ({ cursor, participantIds, submissions }) => {
   const scores: Record<string, number> = {};
   for (const id of participantIds) {
     const action = submissions[id];
@@ -84,16 +85,9 @@ export const resolveRps: MiniGameResolver = ({ seed, cursor, participantIds, sub
     }
     scores[id] = wins;
   }
-  // A stable draw for otherwise identical scores keeps ties meaningful.
-  let workingCursor = cursor;
-  const tiebreak: Record<string, number> = {};
-  for (const id of participantIds) {
-    tiebreak[id] = rngInt(seed, workingCursor, 1000);
-    workingCursor += 1;
-  }
-  const combined: Record<string, number> = {};
-  for (const id of participantIds) combined[id] = (scores[id] ?? 0) * 1000 + (tiebreak[id] ?? 0);
-  return { cursor: workingCursor, ranks: rankByScore(participantIds, combined), detail: scores };
+  // No tie-break draw: a genuine draw is a tie, and `rankByScore` shares the
+  // best rank so every tied player is rewarded.
+  return { cursor, ranks: rankByScore(participantIds, scores), detail: scores };
 };
 
 function beats(a: RpsAction, b: RpsAction): boolean {

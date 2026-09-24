@@ -80,6 +80,19 @@ export function canonicalize(value: unknown): string {
   return out.join('');
 }
 
+/**
+ * Locale-independent string ordering.
+ *
+ * `String.prototype.localeCompare` depends on the runtime's ICU/locale data, so
+ * using it to order state (property lists, insolvency order, tie-breaks) would
+ * make `hashState` differ across platforms. Compare by UTF-16 code unit
+ * instead — the same order in every JS engine.
+ */
+export function compareCodeUnits(a: string, b: string): number {
+  if (a === b) return 0;
+  return a < b ? -1 : 1;
+}
+
 /** Deterministic 8-hex-char digest of any canonicalizable value. */
 export function hashValue(value: unknown): string {
   return fnv1a32(canonicalize(value)).toString(16).padStart(8, '0');

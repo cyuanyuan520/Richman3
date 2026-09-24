@@ -268,26 +268,36 @@ describe('board effects', () => {
     expect(session.state.players.find((player) => player.id === 'p1')?.position.zone).toBe('ring');
   });
 
-  it('refuses a centre exit from a player the engine is not waiting on', () => {
+  it('refuses a centre exit the host did not request', () => {
     const session = patchSession(placeInCenter(boot(), 'p1', 'c_plaza'), (state) => ({
       ...state,
       activePlayerIndex: 1,
       pendingChoice: null,
     }));
+    // Nobody — not even the active seat — may teleport out of the centre.
     expect(applyIntent(session, msg('INTENT_ENTER_CENTER', 'p1', { nodeId: 't0' })).rejected).toBe(
-      'not-your-turn',
+      'no-center-exit-pending',
     );
   });
 
-  it('requires an explicit exit when the centre entry is unknown', () => {
+  it('pins the centre exit to the host-chosen tile', () => {
     let session = placeInCenter(boot(), 'p1', 'c_plaza');
     session = patchSession(session, (state) => ({
       ...state,
       phase: 'AWAIT_CHOICE',
-      pendingChoice: { kind: 'CENTER_EXIT', playerId: 'p1', options: ['RING_RETURN'] },
+      pendingChoice: {
+        kind: 'CENTER_EXIT',
+        playerId: 'p1',
+        nodeId: 't0',
+        options: ['RING_RETURN'],
+      },
     }));
     const blocked = applyIntent(session, msg('INTENT_END_TURN', 'p1', {}));
     expect(blocked.rejected).toBe('not-awaiting-end-turn');
+
+    expect(applyIntent(session, msg('INTENT_ENTER_CENTER', 'p1', { nodeId: 't9' })).rejected).toBe(
+      'exit-tile-mismatch',
+    );
 
     const exited = applyIntent(session, msg('INTENT_ENTER_CENTER', 'p1', { nodeId: 't0' }));
     expect(exited.rejected).toBeNull();

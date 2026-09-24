@@ -112,7 +112,6 @@ export const ClientIntentMessageSchema = z.discriminatedUnion('type', [
     type: z.literal('INTENT_USE_SKILL'),
     payload: z.object({
       skillId: z.string().min(1).max(64),
-      targetPlayerId: PlayerIdSchema.optional(),
     }),
   }),
 ]);
@@ -164,7 +163,7 @@ export const HostEventMessageSchema = z.discriminatedUnion('type', [
     ...RouteFields,
     type: z.literal('ROOM_INFO'),
     payload: z.object({
-      roomId: z.string().min(1).max(64),
+      roomId: ROOM_ID_SCHEMA,
       roomCode: ROOM_CODE_SCHEMA,
       hostPeerId: z.string().min(1).max(64),
       mapId: z.string().min(1).max(64),

@@ -40,7 +40,8 @@ export const SwapPosEffectSchema = z.object({
 
 export const SkipTurnEffectSchema = z.object({
   kind: z.literal('SKIP_TURN'),
-  value: z.number().int().min(1),
+  /** Bounded so `advanceTurn` always terminates within its guard. */
+  value: z.number().int().min(1).max(3),
 });
 
 export const StatusEffectSchema = z.object({

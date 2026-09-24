@@ -52,8 +52,16 @@ export function decide(session: GameSession, playerId: string): AiIntent | null 
   const state = session.state;
   if (state.phase === 'GAME_OVER' || state.phase === 'SETUP') return null;
   const player = state.players.find((entry) => entry.id === playerId);
-  if (player === undefined || player.bankrupt) return null;
+  if (player === undefined) return null;
   const isActive = state.players[state.activePlayerIndex]?.id === playerId;
+
+  // A bankrupt active seat still has to hand the turn over, otherwise the
+  // table deadlocks: every other intent is refused for it.
+  if (player.bankrupt) {
+    return isActive && state.phase === 'AWAIT_END_TURN'
+      ? { type: 'INTENT_END_TURN', payload: {} }
+      : null;
+  }
 
   switch (state.phase) {
     case 'AWAIT_ROLL': {
@@ -88,9 +96,9 @@ export function decide(session: GameSession, playerId: string): AiIntent | null 
       }
 
       if (pending.kind === 'CENTER_EXIT') {
-        const start = session.map.board.ring.find((tile) => tile.type === 'START');
-        if (start === undefined) return null;
-        return { type: 'INTENT_ENTER_CENTER', payload: { nodeId: start.id } };
+        // The host pins the only permitted destination on the pending.
+        if (pending.nodeId === undefined) return null;
+        return { type: 'INTENT_ENTER_CENTER', payload: { nodeId: pending.nodeId } };
       }
 
       if (pending.kind === 'MINIGAME') {

@@ -24,9 +24,11 @@ import {
   buildGeometry,
   outgoingWarp,
   resolveRingMove,
+  tileIdOf,
   withCenterPosition,
   withRingPosition,
 } from './movement';
+import { compareCodeUnits } from './hash';
 import { bonusFor, propertyInvested, rentFor, resolveEconomy, taxFor } from './economy';
 import type { EffectNote } from './effects';
 import { activeSkillEffects, applyEffects } from './effects';
@@ -133,7 +135,7 @@ function syncProperties(state: GameState): GameState {
     players: state.players.map((player) => ({
       ...player,
       properties: [...(byOwner.get(player.id) ?? [])].sort((a, b) =>
-        a.tileId.localeCompare(b.tileId),
+        compareCodeUnits(a.tileId, b.tileId),
       ),
     })),
   };
@@ -189,6 +191,33 @@ function noteToEvent(note: EffectNote): {
   }
 }
 
+/** Default seat values for a freshly created player. */
+function seatPlayer(
+  economy: GameState['economy'],
+  startIndex: number,
+  input: { id: string; nickname: string; characterId: string; isAI: boolean },
+): Player {
+  return {
+    id: input.id,
+    nickname: input.nickname,
+    characterId: input.characterId,
+    isAI: input.isAI,
+    money: economy.startingMoney,
+    position: { zone: 'ring', index: startIndex < 0 ? 0 : startIndex },
+    bankrupt: false,
+    skipTurns: 0,
+    properties: [],
+    statuses: [],
+    skillCooldowns: {},
+    connected: true,
+  };
+}
+
+function startIndexFor(map: MapDefinition): number {
+  const index = map.board.ring.findIndex((tile) => tile.type === 'START');
+  return index < 0 ? 0 : index;
+}
+
 /* ------------------------------------------------------------ creation */
 
 export function createSession(input: CreateGameInput): GameSession {
@@ -208,8 +237,7 @@ export function createSession(input: CreateGameInput): GameSession {
     byCharacterId: new Map(input.characters.map((character) => [character.id, character])),
   };
 
-  const startIndex = input.map.board.ring.findIndex((tile) => tile.type === 'START');
-
+  const startIndex = startIndexFor(input.map);
   const state: GameState = {
     version: 1,
     seed: input.seed,
@@ -217,20 +245,7 @@ export function createSession(input: CreateGameInput): GameSession {
     turn: 1,
     activePlayerIndex: 0,
     phase: 'SETUP',
-    players: input.players.map((player) => ({
-      id: player.id,
-      nickname: player.nickname,
-      characterId: player.characterId,
-      isAI: player.isAI,
-      money: economy.startingMoney,
-      position: { zone: 'ring', index: startIndex < 0 ? 0 : startIndex },
-      bankrupt: false,
-      skipTurns: 0,
-      properties: [],
-      statuses: [],
-      skillCooldowns: {},
-      connected: true,
-    })),
+    players: input.players.map((player) => seatPlayer(economy, startIndex, player)),
     board: { tiles },
     economy,
     roomConfig: input.roomConfig,
@@ -271,10 +286,30 @@ export function startGame(session: GameSession): ApplyResult {
   if (uniqueCharacters.size !== session.state.players.length) {
     return { session, events: [], rejected: 'duplicate-characters' };
   }
+  for (const player of session.state.players) {
+    if (!session.registry.byCharacterId.has(player.characterId)) {
+      return { session, events: [], rejected: `unknown-character:${player.characterId}` };
+    }
+  }
 
   let state: GameState = { ...session.state, phase: 'AWAIT_ROLL' };
   emitter.push('GAME_STARTED', null, { seed: state.seed, mapId: state.mapId });
   state = applyTurnStartTriggers({ ...session, state }, emitter);
+  if (state.phase === 'GAME_OVER') {
+    return {
+      session: { ...session, state: flush(state, emitter) },
+      events: emitter.events,
+      rejected: null,
+    };
+  }
+  if (activePlayer(state)?.bankrupt === true) {
+    state = advanceTurn({ ...session, state }, emitter);
+    return {
+      session: { ...session, state: flush(state, emitter) },
+      events: emitter.events,
+      rejected: null,
+    };
+  }
   emitter.push('TURN_START', activePlayer(state)?.id ?? null, { turn: state.turn });
   return {
     session: { ...session, state: flush(state, emitter) },
@@ -286,26 +321,83 @@ export function startGame(session: GameSession): ApplyResult {
 /* ------------------------------------------------------- trigger helpers */
 
 function applyTurnStartTriggers(session: GameSession, emitter: Emitter): GameState {
-  let state = session.state;
-  const player = activePlayer(state);
+  const player = activePlayer(session.state);
+  if (player === undefined) return session.state;
+  return applyTriggerEffects(session, session.state, player.id, 'ON_TURN_START', emitter);
+}
+
+/**
+ * Runs a player's non-active skill effects for `trigger`, then settles any
+ * insolvency the effects caused. Shared by every trigger point so ON_ROLL,
+ * ON_LAND, ON_TURN_START and ON_CHAOS all behave identically.
+ */
+function applyTriggerEffects(
+  session: GameSession,
+  state: GameState,
+  playerId: string,
+  trigger: 'ON_ROLL' | 'ON_LAND' | 'ON_TURN_START' | 'ON_CHAOS',
+  emitter: Emitter,
+): GameState {
+  const player = findPlayer(state, playerId);
   if (player === undefined) return state;
-  const effects = triggerEffects(player, session.registry, 'ON_TURN_START');
+  const effects = triggerEffects(player, session.registry, trigger);
   if (effects.length === 0) return state;
   const outcome = applyEffects(
     state,
-    player.id,
-    player.id,
+    playerId,
+    playerId,
     effects,
     session.geometry,
     session.registry,
   );
-  state = outcome.state;
+  let next = outcome.state;
   for (const note of outcome.notes) {
     const event = noteToEvent(note);
     emitter.push(event.type, event.playerId, event.data);
   }
-  state = settleInsolvency({ ...session, state }, player.id, null, emitter);
-  return state;
+  next = settleInsolvency({ ...session, state: next }, playerId, null, emitter);
+  return next;
+}
+
+/**
+ * Ring tile the player would return to when leaving the center: their recorded
+ * entry tile when they are already in the center, otherwise where they stand.
+ */
+function entryTileFor(
+  session: GameSession,
+  state: GameState,
+  playerId: string,
+): string | undefined {
+  const player = findPlayer(state, playerId);
+  if (player === undefined) return undefined;
+  if (player.position.zone === 'center') return player.position.entryTileId;
+  return tileIdOf(player, session.geometry) ?? undefined;
+}
+
+/**
+ * Effects such as `WARP { nodeId }` and `SWAP_POS` can drop a player into the
+ * center with no way out, which would turn `INTENT_ROLL` into a silent no-op
+ * forever. Whenever a player is in the center with no mini-game and no pending
+ * choice, hand them a return path.
+ */
+function ensureCenterExit(
+  session: GameSession,
+  state: GameState,
+  playerId: string,
+  fallbackEntryTileId: string | undefined,
+  emitter: Emitter,
+): GameState {
+  const player = findPlayer(state, playerId);
+  if (player === undefined || player.bankrupt) return state;
+  if (player.position.zone !== 'center') return state;
+  if (state.pendingChoice !== null || state.minigame !== null) return state;
+  const entry = player.position.entryTileId ?? fallbackEntryTileId;
+  const auto = entry !== undefined && session.geometry.ringIndexById[entry] !== undefined;
+  emitter.push(auto ? 'CENTER_RETURNED' : 'CENTER_EXIT_PENDING', playerId, {
+    nodeId: player.position.nodeId,
+    entryTileId: entry ?? null,
+  });
+  return exitCenter(session, state, playerId, entry);
 }
 
 function tickStatuses(state: GameState, playerId: string): GameState {
@@ -337,7 +429,7 @@ function settleInsolvency(
   let player = findPlayer(state, playerId);
   if (player === undefined || player.bankrupt || player.money >= 0) return state;
 
-  const ordered = [...player.properties].sort((a, b) => a.tileId.localeCompare(b.tileId));
+  const ordered = [...player.properties].sort((a, b) => compareCodeUnits(a.tileId, b.tileId));
   for (const property of ordered) {
     if (player.money >= 0) break;
     if (property.mortgaged) continue;
@@ -359,11 +451,13 @@ function settleInsolvency(
   if (player === undefined || player.money >= 0) return state;
 
   // Bankruptcy: remaining assets go to the creditor, or back to the bank.
+  // The creditor inherits the *pledged* state of each deed: forgiving the loan
+  // would hand over free equity and inflate their net worth.
   for (const property of player.properties) {
     if (creditorId === null) {
       state = setTileState(state, property.tileId, { ownerId: null, level: 0, mortgaged: false });
     } else {
-      state = setTileState(state, property.tileId, { ownerId: creditorId, mortgaged: false });
+      state = setTileState(state, property.tileId, { ownerId: creditorId });
     }
   }
   state = replacePlayerState(state, {
@@ -451,28 +545,32 @@ function resolveTargets(
   state: GameState,
   triggerId: string,
   target: ChaosEvent['target'],
-): string[] {
+): { targets: string[]; cursor: number } {
   switch (target) {
     case 'SELF':
-      return [triggerId];
+      return { targets: [triggerId], cursor: state.rngCursor };
     case 'ALL':
-      return nonBankrupt(state).map((player) => player.id);
+      return { targets: nonBankrupt(state).map((player) => player.id), cursor: state.rngCursor };
     case 'LEADER': {
       const candidates = nonBankrupt(state);
-      if (candidates.length === 0) return [];
+      if (candidates.length === 0) return { targets: [], cursor: state.rngCursor };
       let best = candidates[0]!;
       for (const player of candidates) {
         if (netWorth(session, player) > netWorth(session, best)) best = player;
       }
-      return [best.id];
+      return { targets: [best.id], cursor: state.rngCursor };
     }
     case 'RANDOM_OPPONENT': {
       const others = nonBankrupt(state).filter((player) => player.id !== triggerId);
-      if (others.length === 0) return [];
-      return [others[rngInt(state.seed, state.rngCursor, others.length)]!.id];
+      if (others.length === 0) return { targets: [], cursor: state.rngCursor };
+      // Consume the draw. Reusing the cursor value would correlate the target
+      // pick with the next draw (e.g. the following dice roll).
+      const cursor = state.rngCursor;
+      const index = rngInt(state.seed, cursor, others.length);
+      return { targets: [others[index]!.id], cursor: cursor + 1 };
     }
     default:
-      return [];
+      return { targets: [], cursor: state.rngCursor };
   }
 }
 
@@ -501,8 +599,10 @@ function drawChaosEvent(
     title: picked.title,
     text: picked.text,
   });
-  const targets = resolveTargets(session, next, triggerId, picked.target);
-  for (const targetId of targets) {
+  const resolved = resolveTargets(session, next, triggerId, picked.target);
+  next = { ...next, rngCursor: resolved.cursor };
+  for (const targetId of resolved.targets) {
+    const entryTile = entryTileFor(session, next, targetId);
     const outcome = applyEffects(
       next,
       targetId,
@@ -517,6 +617,8 @@ function drawChaosEvent(
       emitter.push(event.type, event.playerId, event.data);
     }
     next = settleInsolvency({ ...session, state: next }, targetId, null, emitter);
+    next = applyTriggerEffects(session, next, targetId, 'ON_CHAOS', emitter);
+    next = ensureCenterExit(session, next, targetId, entryTile, emitter);
   }
   return next;
 }
@@ -544,6 +646,7 @@ function resolveRingLanding(
   const tile = session.map.board.ring[player.position.index];
   if (tile === undefined) return state;
 
+  const entryTile = tile.id;
   let next = applyTileBehaviour(session, state, playerId, tile, emitter, depth);
   if (tile.onEnter !== undefined && tile.onEnter.length > 0) {
     const outcome = applyEffects(
@@ -561,7 +664,12 @@ function resolveRingLanding(
     }
     next = settleInsolvency({ ...session, state: next }, playerId, null, emitter);
   }
-  return next;
+  // `ON_LAND` only fires once the landing has fully resolved; a pending
+  // purchase or a running mini-game must not be displaced by skill movement.
+  if (next.phase === 'AWAIT_END_TURN') {
+    next = applyTriggerEffects(session, next, playerId, 'ON_LAND', emitter);
+  }
+  return ensureCenterExit(session, next, playerId, entryTile, emitter);
 }
 
 /** Type-specific landing behaviour, before the tile's own `onEnter` effects. */
@@ -744,7 +852,7 @@ function followWarp(
   }
 
   const minigame = session.miniGameById.get(node.payloadRef);
-  if (node.type === 'MINIGAME' && minigame !== undefined) {
+  if ((node.type === 'MINIGAME' || node.type === 'SHOP') && minigame !== undefined) {
     return startMiniGame(next, minigame, node.id, emitter);
   }
   if (node.type === 'EVENT') {
@@ -753,10 +861,17 @@ function followWarp(
   return exitCenter(session, next, playerId, fromTileId);
 }
 
+function startTileId(session: GameSession): string | null {
+  const start = session.map.board.ring.find((tile) => tile.type === 'START');
+  if (start !== undefined) return start.id;
+  return session.geometry.ringTileIds[0] ?? null;
+}
+
 /**
  * Returns a player from the center zone to the ring. When the entry tile is
- * known the move is automatic; otherwise a `CENTER_EXIT` pending choice is
- * raised and the player must send `INTENT_ENTER_CENTER`.
+ * known the move is automatic; otherwise the player must confirm a return to
+ * the START tile (`INTENT_ENTER_CENTER`). The pending records the only
+ * permitted destination, so the intent can never be a free teleport.
  */
 function exitCenter(
   session: GameSession,
@@ -776,9 +891,11 @@ function exitCenter(
       );
     }
   }
+  const fallback = startTileId(session);
+  if (fallback === null) return setPending(state, null, 'AWAIT_END_TURN');
   return setPending(
     state,
-    { kind: 'CENTER_EXIT', playerId, options: ['RING_RETURN'] },
+    { kind: 'CENTER_EXIT', playerId, nodeId: fallback, options: ['RING_RETURN'] },
     'AWAIT_CHOICE',
   );
 }
@@ -791,8 +908,13 @@ function startMiniGame(
   nodeId: string | null,
   emitter: Emitter,
 ): GameState {
-  const participants = nonBankrupt(state).map((player) => player.id);
-  const capped = participants.slice(0, definition.maxPlayers);
+  // The actor always takes part, even when the definition allows fewer players
+  // than the table: otherwise they would receive a pending they cannot submit.
+  const actorId = state.players[state.activePlayerIndex]?.id;
+  const ordered = nonBankrupt(state).map((player) => player.id);
+  const seatOrder =
+    actorId === undefined ? ordered : [actorId, ...ordered.filter((id) => id !== actorId)];
+  const capped = seatOrder.slice(0, definition.maxPlayers);
   const minigame: MiniGameState = {
     minigameId: definition.id,
     kind: definition.kind,
@@ -827,8 +949,14 @@ function resolveMiniGame(session: GameSession, state: GameState, emitter: Emitte
   });
   let next: GameState = { ...state, rngCursor: outcome.cursor };
   const ranked = [...outcome.ranks].sort((a, b) => a[1] - b[1]);
-  const winnerId = ranked[0]?.[0];
-  if (winnerId !== undefined) {
+  // Everyone sharing the best rank is rewarded, so a tie is not decided by
+  // participant order.
+  const bestRank = ranked[0]?.[1];
+  const winnerIds =
+    bestRank === undefined
+      ? []
+      : ranked.filter((entry) => entry[1] === bestRank).map((entry) => entry[0]);
+  for (const winnerId of winnerIds) {
     const result = applyEffects(
       next,
       winnerId,
@@ -909,6 +1037,14 @@ function finishGame(session: GameSession, emitter: Emitter, winnerId: string | n
 
 /* --------------------------------------------------------- turn advance */
 
+function netWorthLeaderId(session: GameSession): string | null {
+  let best: Player | undefined;
+  for (const player of nonBankrupt(session.state)) {
+    if (best === undefined || netWorth(session, player) > netWorth(session, best)) best = player;
+  }
+  return best?.id ?? null;
+}
+
 function advanceTurn(session: GameSession, emitter: Emitter): GameState {
   let state = session.state;
   let guard = 0;
@@ -920,6 +1056,12 @@ function advanceTurn(session: GameSession, emitter: Emitter): GameState {
     if (nextIndex === 0) {
       state = { ...state, turn: state.turn + 1 };
       emitter.turn = state.turn;
+      if (
+        state.roomConfig.victory.kind === 'TURN_LIMIT' &&
+        state.turn > state.roomConfig.victory.value
+      ) {
+        return finishGame({ ...session, state }, emitter, netWorthLeaderId({ ...session, state }));
+      }
     }
     const candidate = state.players[nextIndex];
     if (candidate === undefined) break;
@@ -931,30 +1073,24 @@ function advanceTurn(session: GameSession, emitter: Emitter): GameState {
       continue;
     }
     state = tickStatuses(state, candidate.id);
-    break;
-  }
-
-  if (
-    state.roomConfig.victory.kind === 'TURN_LIMIT' &&
-    state.turn > state.roomConfig.victory.value
-  ) {
-    const survivors = nonBankrupt(state);
-    let best: Player | undefined;
-    for (const player of survivors) {
-      if (
-        best === undefined ||
-        netWorth({ ...session, state }, player) > netWorth({ ...session, state }, best)
-      ) {
-        best = player;
-      }
+    state = applyTurnStartTriggers({ ...session, state }, emitter);
+    // Turn-start effects can end the game or bankrupt the new active player;
+    // returning the state unchanged here used to clobber `GAME_OVER`.
+    if (state.phase === 'GAME_OVER') return state;
+    const started = state.players[state.activePlayerIndex];
+    if (started === undefined) break;
+    if (started.bankrupt) continue;
+    if (started.skipTurns > 0) {
+      state = replacePlayerState(state, { ...started, skipTurns: started.skipTurns - 1 });
+      emitter.push('TURN_SKIPPED', started.id, { remaining: started.skipTurns - 1 });
+      continue;
     }
-    return finishGame({ ...session, state }, emitter, best?.id ?? null);
+    emitter.push('TURN_START', started.id, { turn: state.turn });
+    return { ...state, phase: 'AWAIT_ROLL', pendingChoice: null };
   }
-
-  const nextActive = activePlayer(state);
-  emitter.push('TURN_START', nextActive?.id ?? null, { turn: state.turn });
-  state = applyTurnStartTriggers({ ...session, state }, emitter);
-  return { ...state, phase: 'AWAIT_ROLL', pendingChoice: null };
+  // Exhausting the guard means every seat is bankrupt or skipping, which
+  // `checkVictory` normally prevents. Terminate deterministically anyway.
+  return finishGame({ ...session, state }, emitter, netWorthLeaderId({ ...session, state }));
 }
 
 /* ----------------------------------------------------------- intent API */
@@ -1025,6 +1161,9 @@ function applySelectCharacter(
   if (session.state.phase !== 'SETUP') return reject(session, 'not-in-setup');
   const player = findPlayer(session.state, intent.from);
   if (player === undefined) return reject(session, 'unknown-player');
+  if (!session.registry.byCharacterId.has(intent.payload.characterId)) {
+    return reject(session, `unknown-character:${intent.payload.characterId}`);
+  }
   const taken = session.state.players.find(
     (entry) => entry.id !== player.id && entry.characterId === intent.payload.characterId,
   );
@@ -1033,7 +1172,13 @@ function applySelectCharacter(
       characterId: intent.payload.characterId,
       byPlayerId: taken.id,
     });
-    return { session, events: emitter.events, rejected: 'character-taken' };
+    // Flush so the emitted sequence number is reserved: a later rejected
+    // intent must not reuse it (P4 dedupes by `seq`).
+    return {
+      session: { ...session, state: flush(session.state, emitter) },
+      events: emitter.events,
+      rejected: 'character-taken',
+    };
   }
   const state = replacePlayerState(session.state, {
     ...player,
@@ -1073,24 +1218,10 @@ function applyRoll(
 }
 
 function applyRollTriggers(session: GameSession, playerId: string, emitter: Emitter): GameState {
-  const state = session.state;
-  const player = findPlayer(state, playerId);
-  if (player === undefined) return state;
-  const effects = triggerEffects(player, session.registry, 'ON_ROLL');
-  if (effects.length === 0) return state;
-  const outcome = applyEffects(
-    state,
-    playerId,
-    playerId,
-    effects,
-    session.geometry,
-    session.registry,
-  );
-  for (const note of outcome.notes) {
-    const event = noteToEvent(note);
-    emitter.push(event.type, event.playerId, event.data);
-  }
-  return settleInsolvency({ ...session, state: outcome.state }, playerId, null, emitter);
+  const entryTile = entryTileFor(session, session.state, playerId);
+  let next = applyTriggerEffects(session, session.state, playerId, 'ON_ROLL', emitter);
+  next = ensureCenterExit(session, next, playerId, entryTile, emitter);
+  return next;
 }
 
 function applyBuy(
@@ -1217,10 +1348,25 @@ function applyEndTurn(
   intent: Extract<ClientIntentMessage, { type: 'INTENT_END_TURN' }>,
   emitter: Emitter,
 ): ApplyResult {
-  const guard = requireTurn(session, intent);
-  if (guard !== null) return guard;
-  if (session.state.phase !== 'AWAIT_END_TURN') return reject(session, 'not-awaiting-end-turn');
-  const next = advanceTurn(session, emitter);
+  const state = session.state;
+  if (state.phase === 'GAME_OVER') return reject(session, 'game-over');
+  const active = activePlayer(state);
+  if (active === undefined) return reject(session, 'no-active-player');
+  if (active.id !== intent.from) return reject(session, 'not-your-turn');
+  // A bankrupt active seat must still be able to hand the turn over: every
+  // other intent is refused for it, so rejecting this one would deadlock the
+  // table until the game ends.
+  if (!active.bankrupt && state.phase !== 'AWAIT_END_TURN') {
+    return reject(session, 'not-awaiting-end-turn');
+  }
+  let base = state;
+  if (active.bankrupt) {
+    if (state.minigame !== null) {
+      emitter.push('MINIGAME_ABORTED', active.id, { minigameId: state.minigame.minigameId });
+    }
+    base = { ...state, pendingChoice: null, minigame: null };
+  }
+  const next = advanceTurn({ ...session, state: base }, emitter);
   return {
     session: { ...session, state: flush(next, emitter) },
     events: emitter.events,
@@ -1240,7 +1386,7 @@ function applyMortgage(
   const player = findPlayer(state, intent.from);
   if (player === undefined) return reject(session, 'unknown-player');
   if (player.bankrupt) return reject(session, 'player-bankrupt');
-  if (!player.isAI && state.players[state.activePlayerIndex]?.id !== player.id) {
+  if (state.players[state.activePlayerIndex]?.id !== player.id) {
     return reject(session, 'not-your-turn');
   }
   const tileState = state.board.tiles[intent.payload.tileId];
@@ -1315,16 +1461,21 @@ function applyEnterCenter(
   emitter: Emitter,
 ): ApplyResult {
   const state = session.state;
+  if (state.phase === 'GAME_OVER') return reject(session, 'game-over');
   const player = findPlayer(state, intent.from);
   if (player === undefined) return reject(session, 'unknown-player');
   if (player.position.zone !== 'center') return reject(session, 'not-in-center');
 
+  // Leaving the center is only ever a confirmation of a host-raised pending,
+  // and the pending pins the one permitted destination. Without this the
+  // intent would be a free teleport that also skips landing resolution.
   const pending = state.pendingChoice;
-  const isPendingExit =
-    pending !== null && pending.kind === 'CENTER_EXIT' && pending.playerId === intent.from;
-  const isActive = state.players[state.activePlayerIndex]?.id === intent.from;
-  if (!isPendingExit && !isActive) return reject(session, 'not-your-turn');
-  if (state.phase === 'GAME_OVER') return reject(session, 'game-over');
+  if (pending === null || pending.kind !== 'CENTER_EXIT' || pending.playerId !== intent.from) {
+    return reject(session, 'no-center-exit-pending');
+  }
+  if (pending.nodeId === undefined || pending.nodeId !== intent.payload.nodeId) {
+    return reject(session, 'exit-tile-mismatch');
+  }
 
   const index = session.geometry.ringIndexById[intent.payload.nodeId];
   if (index === undefined) return reject(session, 'unknown-ring-tile');
@@ -1352,6 +1503,7 @@ function applyUseSkill(
   if (skill === undefined) return reject(session, 'unknown-skill');
   const check = canUseSkill(player, skill, session.registry);
   if (!check.ok) return reject(session, check.reason ?? 'skill-unavailable');
+  const entryTile = entryTileFor(session, state, player.id);
 
   let next: GameState = state;
   if (skill.cost !== undefined && skill.cost > 0) {
@@ -1371,9 +1523,12 @@ function applyUseSkill(
     const event = noteToEvent(note);
     emitter.push(event.type, event.playerId, event.data);
   }
-  const cooldown = skill.cooldown ?? 0;
+  // Every ACTIVE skill gets at least a one-turn cooldown. Without a floor, a
+  // skill declared with no cooldown could be cast repeatedly and generate
+  // unbounded money towards the asset target.
+  const cooldown = Math.max(skill.cooldown ?? 0, 1);
   const used = findPlayer(next, player.id);
-  if (used !== undefined && cooldown > 0) {
+  if (used !== undefined) {
     next = replacePlayerState(next, {
       ...used,
       skillCooldowns: { ...used.skillCooldowns, [skill.id]: cooldown + 1 },
@@ -1381,7 +1536,82 @@ function applyUseSkill(
   }
   emitter.push('SKILL_USED', player.id, { skillId: skill.id });
   next = settleInsolvency({ ...session, state: next }, player.id, null, emitter);
+  next = ensureCenterExit(session, next, player.id, entryTile, emitter);
   next = checkVictory({ ...session, state: next }, emitter);
+  return {
+    session: { ...session, state: flush(next, emitter) },
+    events: emitter.events,
+    rejected: null,
+  };
+}
+
+/* ----------------------------------------------------------- room seating */
+
+export interface SeatInput {
+  readonly id: string;
+  readonly nickname: string;
+  readonly characterId: string;
+  readonly isAI: boolean;
+}
+
+/**
+ * Host-side room mutation: adds a seat. Kept inside the reducer so that P4
+ * never has to hand-mutate `state.players`.
+ */
+export function addPlayer(session: GameSession, input: SeatInput): ApplyResult {
+  const emitter = new Emitter(session.state);
+  const state = session.state;
+  if (state.phase !== 'SETUP') return reject(session, 'game-already-started');
+  if (state.players.length >= 4) return reject(session, 'room-full');
+  if (findPlayer(state, input.id) !== undefined) return reject(session, 'player-id-taken');
+  if (!session.registry.byCharacterId.has(input.characterId)) {
+    return reject(session, `unknown-character:${input.characterId}`);
+  }
+  const next: GameState = {
+    ...state,
+    players: [...state.players, seatPlayer(state.economy, startIndexFor(session.map), input)],
+  };
+  emitter.push('PLAYER_SEATED', input.id, { nickname: input.nickname, isAI: input.isAI });
+  return {
+    session: { ...session, state: flush(next, emitter) },
+    events: emitter.events,
+    rejected: null,
+  };
+}
+
+/** Host-side: mirrors a transport connect/disconnect into authoritative state. */
+export function setPlayerConnected(
+  session: GameSession,
+  playerId: string,
+  connected: boolean,
+): ApplyResult {
+  const state = session.state;
+  const player = findPlayer(state, playerId);
+  if (player === undefined) return reject(session, 'unknown-player');
+  if (player.connected === connected) return { session, events: [], rejected: null };
+  const emitter = new Emitter(state);
+  const next = replacePlayerState(state, { ...player, connected });
+  emitter.push(connected ? 'PLAYER_CONNECTED' : 'PLAYER_DISCONNECTED', playerId, {});
+  return {
+    session: { ...session, state: flush(next, emitter) },
+    events: emitter.events,
+    rejected: null,
+  };
+}
+
+/** Host-side: removes a seat before the game starts. */
+export function removePlayer(session: GameSession, playerId: string): ApplyResult {
+  const state = session.state;
+  if (state.phase !== 'SETUP') return reject(session, 'game-already-started');
+  const player = findPlayer(state, playerId);
+  if (player === undefined) return reject(session, 'unknown-player');
+  const emitter = new Emitter(state);
+  const next: GameState = {
+    ...state,
+    players: state.players.filter((entry) => entry.id !== playerId),
+    activePlayerIndex: 0,
+  };
+  emitter.push('PLAYER_LEFT', playerId, {});
   return {
     session: { ...session, state: flush(next, emitter) },
     events: emitter.events,

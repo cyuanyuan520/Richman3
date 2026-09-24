@@ -10,7 +10,7 @@
 
 import { z } from 'zod';
 import { EconomyRulesOverrideSchema } from '../economy';
-import { EffectListSchema } from './effects';
+import { EffectListSchema, validateEffectList } from './effects';
 import {
   ArchetypeSchema,
   CenterNodeTypeSchema,
@@ -204,6 +204,20 @@ export function validateMapDefinition(map: MapDefinition): string[] {
     if (!ringIds.has(warp.toTileId) && !centerIds.has(warp.toTileId)) {
       issues.push(`warp target ${warp.toTileId} does not exist on the board`);
     }
+    // `condition` has no evaluator yet; accepting it would silently make the
+    // warp unconditional at runtime.
+    if (warp.condition !== undefined) {
+      issues.push(
+        `warp ${warp.fromTileId} -> ${warp.toTileId}: conditional warps are not supported`,
+      );
+    }
+  }
+
+  for (const tile of ring) {
+    if (tile.onEnter === undefined) continue;
+    for (const issue of validateEffectList(tile.onEnter)) {
+      issues.push(`ring tile ${tile.id} onEnter: ${issue}`);
+    }
   }
 
   for (const id of duplicateIds(map.events)) {
@@ -245,6 +259,50 @@ export function validateContentPack(pack: ContentPack): string[] {
       if (!eventIds.has(eventId)) {
         issues.push(`map ${map.id}: unknown chaos event ${eventId}`);
       }
+    }
+  }
+
+  for (const character of pack.characters) {
+    const { skill } = character;
+    for (const issue of validateEffectList(skill.effect)) {
+      issues.push(`skill ${skill.id}: ${issue}`);
+    }
+    if (skill.type === 'ACTIVE') {
+      if (skill.trigger !== undefined) {
+        issues.push(`skill ${skill.id}: ACTIVE skills must not declare a trigger`);
+      }
+      // ACTIVE skills are always given a cooldown floor by the reducer, but
+      // content should say so explicitly rather than rely on the fallback.
+      if ((skill.cooldown ?? 0) < 1) {
+        issues.push(`skill ${skill.id}: ACTIVE skills require cooldown >= 1`);
+      }
+    } else if (skill.trigger === undefined) {
+      issues.push(`skill ${skill.id}: ${skill.type} skills require a trigger`);
+    }
+    if (skill.type !== 'ACTIVE' && skill.trigger === 'ON_PAY') {
+      // Only the rent-multiplier path is wired up for ON_PAY; anything else
+      // would silently do nothing.
+      const unsupported = skill.effect.some(
+        (effect) => !(effect.kind === 'STATUS' && effect.status === 'RENT_BOOST'),
+      );
+      if (unsupported) {
+        issues.push(`skill ${skill.id}: ON_PAY supports only STATUS RENT_BOOST effects`);
+      }
+    }
+  }
+
+  for (const event of pack.chaosEvents) {
+    for (const issue of validateEffectList(event.effect)) {
+      issues.push(`chaos event ${event.id}: ${issue}`);
+    }
+  }
+
+  for (const minigame of pack.miniGames) {
+    for (const issue of validateEffectList(minigame.rewards)) {
+      issues.push(`minigame ${minigame.id}: ${issue}`);
+    }
+    if (minigame.minPlayers > minigame.maxPlayers) {
+      issues.push(`minigame ${minigame.id}: minPlayers exceeds maxPlayers`);
     }
   }
 
