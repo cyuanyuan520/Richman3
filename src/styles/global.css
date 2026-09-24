@@ -1,0 +1,54 @@
+:root {
+  --color-bg: #f6f4e8;
+  --color-ink: #2b2b2b;
+  --color-accent: #ffb703;
+  font-family:
+    'PingFang SC',
+    'Microsoft YaHei',
+    system-ui,
+    -apple-system,
+    sans-serif;
+  color: var(--color-ink);
+  background-color: var(--color-bg);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
+.app-shell {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.app-shell__header {
+  padding: 12px 20px;
+  background: #ffffff;
+  border-bottom: 2px solid var(--color-accent);
+}
+
+.app-shell__header h1 {
+  margin: 0;
+  font-size: 20px;
+}
+
+.app-shell__header p {
+  margin: 2px 0 0;
+  font-size: 13px;
+  opacity: 0.7;
+}
+
+.app-shell__viewport {
+  flex: 1;
+  min-height: 0;
+}
