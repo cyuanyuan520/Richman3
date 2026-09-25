@@ -34,7 +34,7 @@ import {
   type ApplyResult,
   type GameSession,
 } from '@/engine/reducer';
-import { encodeMessage } from './protocol';
+import { decodeMessage, encodeMessage } from './protocol';
 import { SeqTracker } from './protocol';
 import { hashState } from '@/engine/hash';
 import type { RandomInt, RoomCredentials } from './credentials';
@@ -97,6 +97,8 @@ interface PeerLink {
   attempts: number[];
   pending: JoinPayload | null;
   nickname: string | null;
+  /** Set once the connection is gone, so stale approvals cannot seat anyone. */
+  closed: boolean;
 }
 
 export class HostSession {
@@ -151,7 +153,12 @@ export class HostSession {
 
   stop(): void {
     this.clearMinigameTimer();
-    for (const link of this.links.values()) link.connection.close();
+    for (const link of this.links.values()) {
+      link.closed = true;
+      link.pending = null;
+      link.proposedId = null;
+      link.connection.close();
+    }
     this.links.clear();
     this.transport?.close();
     this.transport = null;
@@ -193,7 +200,8 @@ export class HostSession {
     });
     if (result.rejected !== null) return null;
     this.session = result.session;
-    this.publish([]);
+    this.publish(result.events);
+    this.broadcastRoomInfo();
     return id;
   }
 
@@ -214,12 +222,17 @@ export class HostSession {
 
   kick(playerId: string): void {
     const result = removePlayer(this.session, playerId);
-    this.session = result.session;
+    if (result.rejected !== null) {
+      // The seat is still in the game, so its token and link binding must stay
+      // intact or the player could never reconnect.
+      this.options.onError?.('host-mutation-rejected', result.rejected);
+      return;
+    }
     this.seatTokens.delete(playerId);
     for (const link of this.links.values()) {
       if (link.playerId === playerId) link.playerId = null;
     }
-    this.publish([]);
+    this.applyHostResult(result, { roomInfo: true });
   }
 
   /** Host-local intent application (the host plays too). */
@@ -240,6 +253,7 @@ export class HostSession {
       attempts: [],
       pending: null,
       nickname: null,
+      closed: false,
     };
     this.links.set(connection.peerId, link);
     this.inboundSeq.forget(connection.peerId);
@@ -252,17 +266,18 @@ export class HostSession {
   }
 
   private handleFrame(link: PeerLink, frame: string): void {
-    let parsed: unknown;
-    try {
-      parsed = JSON.parse(frame);
-    } catch {
+    // Unvalidated input never reaches the reducer (SEC-001). The client side
+    // uses the same decoder, so a hostile frame is reported and dropped here
+    // rather than being cast into authoritative state.
+    const decoded = decodeMessage(frame);
+    if (!decoded.ok) {
+      this.options.onError?.(
+        decoded.reason === 'protocol-version-mismatch' ? 'protocol-version-mismatch' : 'bad-frame',
+        `${link.peerId}:${decoded.reason}`,
+      );
       return;
     }
-    const message = parsed as NetMessage;
-    if (message.v !== NET_PROTOCOL_VERSION) {
-      this.options.onError?.('protocol-version-mismatch', link.peerId);
-      return;
-    }
+    const message = decoded.message;
     if (!this.inboundSeq.accept(link.peerId, message.seq)) return;
 
     if (message.type === 'INTENT_JOIN') {
@@ -356,10 +371,15 @@ export class HostSession {
     this.session = setPlayerConnected(this.session, reconnect.playerId, true).session;
     link.playerId = reconnect.playerId;
     link.pending = null;
+    link.proposedId = null;
+    // Rotate on every successful rebind: a leaked token stops working the
+    // moment the rightful client reconnects.
+    const rotated = this.mintToken();
+    this.seatTokens.set(reconnect.playerId, rotated);
     this.send(link, 'JOIN_ACCEPTED', {
       playerId: reconnect.playerId,
       seatIndex,
-      reconnectToken: expected,
+      reconnectToken: rotated,
     });
     this.send(link, 'STATE_SNAPSHOT', { state: this.session.state });
     this.broadcastRoomInfo();
@@ -370,7 +390,7 @@ export class HostSession {
   private settlePending(link: PeerLink, approve: boolean): void {
     const payload = link.pending;
     const proposedId = link.proposedId;
-    if (payload === null || proposedId === null) return;
+    if (link.closed || payload === null || proposedId === null) return;
     link.pending = null;
     link.proposedId = null;
     if (!approve) {
@@ -390,12 +410,22 @@ export class HostSession {
    * overwrite an existing seat.
    */
   private admit(link: PeerLink, proposedId: string, payload: JoinPayload): void {
+    if (this.session.state.players.length >= MAX_PLAYERS) {
+      this.reject(link, 'room-full', proposedId);
+      return;
+    }
     if (this.session.state.players.some((player) => player.id === proposedId)) {
       this.reject(link, 'seat-taken', proposedId);
       return;
     }
     const characterId =
       payload.characterId ?? firstFreeCharacterId(this.session, this.options.pack.characters);
+    // First-come-first-served at join time (REQ-034/AC-039). Checking here means
+    // two clients cannot silently share a character until `begin()` fails.
+    if (this.session.state.players.some((player) => player.characterId === characterId)) {
+      this.reject(link, 'character-taken', proposedId);
+      return;
+    }
     const result = addPlayer(this.session, {
       id: proposedId,
       nickname: payload.nickname,
@@ -406,17 +436,15 @@ export class HostSession {
       this.reject(link, result.rejected, proposedId);
       return;
     }
-    this.session = result.session;
     const token = this.mintToken();
     this.seatTokens.set(proposedId, token);
     link.playerId = proposedId;
     link.pending = null;
     link.proposedId = null;
-    const seatIndex = this.session.state.players.findIndex((player) => player.id === proposedId);
+    const seatIndex = result.session.state.players.findIndex((player) => player.id === proposedId);
     this.send(link, 'JOIN_ACCEPTED', { playerId: proposedId, seatIndex, reconnectToken: token });
-    this.send(link, 'STATE_SNAPSHOT', { state: this.session.state });
-    this.publish([]);
-    this.broadcastRoomInfo();
+    this.send(link, 'STATE_SNAPSHOT', { state: result.session.state });
+    this.applyHostResult(result, { roomInfo: true });
     this.options.onPeersChanged?.(this.connectedSeats());
   }
 
@@ -438,11 +466,17 @@ export class HostSession {
   private handleDisconnect(peerId: string): void {
     const link = this.links.get(peerId);
     this.links.delete(peerId);
-    if (link?.playerId == null) return;
-    const result = setPlayerConnected(this.session, link.playerId, false);
-    this.session = result.session;
-    this.publish([]);
-    this.options.onPeersChanged?.(this.connectedSeats());
+    if (link === undefined) return;
+    // A pending approval must not outlive its connection: approving a ghost
+    // would seat someone who can never receive the acceptance, and the seat
+    // would occupy the room forever.
+    link.closed = true;
+    link.pending = null;
+    link.proposedId = null;
+    if (link.playerId === null) return;
+    this.applyHostResult(setPlayerConnected(this.session, link.playerId, false), {
+      roomInfo: true,
+    });
   }
 
   /* --------------------------------------------------------------- broadcast */
@@ -451,12 +485,27 @@ export class HostSession {
     this.session = result.session;
     if (result.rejected !== null) {
       // No dedicated wire event exists for a refusal (spec §4 has none), so the
-      // host surfaces it locally and simply does not broadcast anything: the
-      // client's mirror is unchanged, which is the correct outcome.
+      // host surfaces it locally. Any events the reducer produced alongside the
+      // refusal are still published: `CHARACTER_TAKEN` is emitted on a rejected
+      // result on purpose, and dropping it would leave the client with no
+      // feedback at all.
       this.options.onError?.('intent-rejected', result.rejected);
-      return;
     }
     this.publish(result.events);
+  }
+
+  /**
+   * Stores a reducer result produced by a host-side mutation (seating, kicking,
+   * connect/disconnect) and publishes it. Every mutation goes through here so
+   * lifecycle events reach clients instead of being discarded.
+   */
+  private applyHostResult(result: ApplyResult, options?: { roomInfo?: boolean }): void {
+    this.session = result.session;
+    if (result.rejected !== null) {
+      this.options.onError?.('host-mutation-rejected', result.rejected);
+    }
+    this.publish(result.events);
+    if (options?.roomInfo === true) this.broadcastRoomInfo();
   }
 
   /** Fans the produced events out, then re-arms the mini-game deadline. */
@@ -464,6 +513,11 @@ export class HostSession {
     for (const event of events) this.options.onEvent?.(event);
     if (events.length > 0) {
       this.broadcastMessage('STATE_EVENT', { events: [...events] });
+      // There is no client-side event-application reducer, so events are for
+      // animation only; the authoritative snapshot follows every change and
+      // keeps each mirror exact by construction (AC-007, REQ-011). At four
+      // seats the payload is small enough that this is cheaper than a delta.
+      this.broadcastSnapshot();
     }
     this.options.onStateChanged?.(this.session.state);
     this.syncMinigameTimer();

@@ -79,6 +79,11 @@ function randomBody(length: number, randomInt: RandomInt): string | null {
  * CSPRNG (`crypto.getRandomValues`) — callers must surface that as a hard
  * failure rather than fall back to `Math.random`, which would make room codes
  * predictable.
+ *
+ * This is the **only** supported producer of share links: `parseInviteTarget`
+ * reads the host peer id from the first `ROOM_CODE_LENGTH` characters, so a
+ * generic `makeRoomId(nanoid())` body would parse to `null` even though it
+ * matches `ROOM_ID_PATTERN`.
  */
 export function makeRoomCredentials(
   randomInt: RandomInt = defaultRandomInt,

@@ -41,6 +41,14 @@ export interface ClientSessionOptions {
   /** A local intent the host refused, or a join refusal. */
   readonly onRejected?: (reason: string) => void;
   readonly onError?: (code: string, detail: string) => void;
+  /**
+   * Seat credential restored from storage. A page refresh is the most common
+   * disconnect, and seats are SETUP-only, so without this a refreshed client
+   * could never rejoin (REQ-011).
+   */
+  readonly seat?: { playerId: string; token: string } | undefined;
+  /** Room reference for a restored session that has not called `connect`. */
+  readonly target?: JoinTargetInput | undefined;
 }
 
 export interface JoinTargetInput {
@@ -75,6 +83,22 @@ export class ClientSession {
   constructor(options: ClientSessionOptions) {
     this.options = options;
     this.clientId = `c${randomSuffix()}`;
+    if (options.seat !== undefined) {
+      this.playerId = options.seat.playerId;
+      this.token = options.seat.token;
+    }
+    if (options.target !== undefined) {
+      this.target = {
+        ...(options.target.roomCode ? { roomCode: options.target.roomCode } : {}),
+        ...(options.target.roomId ? { roomId: options.target.roomId } : {}),
+      };
+    }
+  }
+
+  /** Seat credential to persist; feed it back through `ClientSessionOptions.seat`. */
+  get seatToken(): { playerId: string; token: string } | null {
+    if (this.playerId === null || this.token === null) return null;
+    return { playerId: this.playerId, token: this.token };
   }
 
   get currentStatus(): ClientStatus {
@@ -99,9 +123,11 @@ export class ClientSession {
       this.setStatus('rejected');
       return { ok: false, reason: 'invalid-room-reference' };
     }
+    // Store the *normalised* code: the wire schema is uppercase-only, and a
+    // hand-typed lowercase code would otherwise be rejected as a bad frame.
     this.target = {
+      roomCode: resolved.roomCode,
       ...(target.roomId ? { roomId: target.roomId } : {}),
-      ...(target.roomCode ? { roomCode: target.roomCode } : {}),
     };
     this.setStatus('connecting');
     const factory =
@@ -149,6 +175,10 @@ export class ClientSession {
     if (resolved === null) {
       return { ok: false, reason: 'invalid-room-reference' };
     }
+    this.target = {
+      roomCode: resolved.roomCode,
+      ...(this.target.roomId ? { roomId: this.target.roomId } : {}),
+    };
     this.setStatus('connecting');
     let connection: TransportConnection;
     try {
@@ -226,7 +256,15 @@ export class ClientSession {
       this.handleFrame(frame);
     });
     connection.onClose(() => {
-      if (this.status === 'joined') this.setStatus('disconnected');
+      if (this.connection !== connection) return;
+      // A drop during the handshake must not leave `connect()`/`reconnect()`
+      // pending forever: that is the silent hang REQ-026 forbids.
+      if (this.joinResolver !== null) {
+        const resolve = this.joinResolver;
+        this.joinResolver = null;
+        resolve({ ok: false, reason: 'connection-closed' });
+      }
+      if (this.status !== 'idle') this.setStatus('disconnected');
     });
   }
 

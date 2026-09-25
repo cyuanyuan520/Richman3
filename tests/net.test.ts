@@ -22,6 +22,7 @@ import { SeqTracker, decodeMessage, encodeMessage } from '@/net/protocol';
 import { HostSession, JOIN_ATTEMPT_LIMIT } from '@/net/host';
 import { ClientSession } from '@/net/client';
 import { createLoopbackNetwork, type LoopbackNetwork } from '@/net/loopback';
+import { peerOptions, toTransportErrorCode } from '@/net/transport';
 
 import { makeSession, patchSession } from './fixtures/content';
 
@@ -427,5 +428,176 @@ describe('forceResolveMiniGame', () => {
     const first = forceResolveMiniGame(miniGameSession('WHEEL'));
     const second = forceResolveMiniGame(miniGameSession('WHEEL'));
     expect(first.session.state.players).toEqual(second.session.state.players);
+  });
+});
+
+describe('Gate 4 remediation', () => {
+  it('drops malformed and hostile frames without touching authoritative state', async () => {
+    const { creds, network, host, errors } = makeRoom();
+    const before = host.stateHash();
+    const raw = network.createClient({ onError: () => {} });
+    const connection = await raw.connect(creds.peerId);
+    connection.send('{ not json');
+    connection.send(
+      JSON.stringify({
+        v: NET_PROTOCOL_VERSION,
+        type: 'INTENT_JOIN',
+        seq: 0,
+        from: 'c1',
+        payload: null,
+      }),
+    );
+    connection.send(
+      JSON.stringify({
+        v: NET_PROTOCOL_VERSION,
+        type: 'INTENT_JOIN',
+        seq: 1,
+        from: 'c2',
+        payload: { roomId: creds.roomId, nickname: 42 },
+      }),
+    );
+    await vi.waitFor(() =>
+      expect(errors.filter((entry) => entry.startsWith('bad-frame')).length).toBe(3),
+    );
+    expect(host.stateHash()).toBe(before);
+    expect(host.state.players).toHaveLength(1);
+    connection.close();
+    host.stop();
+  });
+
+  it('accepts a hand-typed lowercase room code', async () => {
+    const { creds, network, host, joinRequests } = makeRoom();
+    const client = makeClient(network, '小写', 'char_ninja');
+    const pending = client.session.connect({ roomCode: creds.roomCode.toLowerCase() });
+    await vi.waitFor(() => expect(joinRequests).toHaveLength(1));
+    expect(client.statuses).toContain('pending-approval');
+    joinRequests[0]?.approve();
+    expect((await pending).ok).toBe(true);
+    client.session.close();
+    host.stop();
+  });
+
+  it('advances a client mirror after a host intent', async () => {
+    const { creds, network, host } = makeRoom();
+    const client = makeClient(network, '镜像', 'char_ninja');
+    expect((await client.session.connect({ roomId: creds.roomId })).ok).toBe(true);
+    expect(host.addAiPlayer('AI-1', 'char_girl')).not.toBeNull();
+    expect(host.begin().ok).toBe(true);
+    const before = client.session.currentState;
+    expect(before).not.toBeNull();
+    host.hostIntent({
+      type: 'INTENT_ROLL',
+      payload: {},
+      v: NET_PROTOCOL_VERSION,
+      seq: 0,
+      from: 'p1',
+    });
+    await vi.waitFor(() => {
+      expect(client.session.currentState?.rngCursor).not.toBe(before?.rngCursor);
+    });
+    client.session.close();
+    host.stop();
+  });
+
+  it('publishes seat lifecycle events to seated clients', async () => {
+    const { creds, network, host } = makeRoom();
+    const client = makeClient(network, '旁观', 'char_ninja');
+    expect((await client.session.connect({ roomId: creds.roomId })).ok).toBe(true);
+    expect(host.addAiPlayer('AI-1', 'char_girl')).not.toBeNull();
+    await vi.waitFor(() => expect(client.events).toContain('PLAYER_SEATED'));
+    client.session.close();
+    host.stop();
+  });
+
+  it('refuses a second entrant for a taken character', async () => {
+    const { creds, network, host } = makeRoom();
+    const first = makeClient(network, '先到', 'char_ninja');
+    expect((await first.session.connect({ roomId: creds.roomId })).ok).toBe(true);
+    const second = makeClient(network, '后到', 'char_ninja');
+    const result = await second.session.connect({ roomId: creds.roomId });
+    expect(result.ok).toBe(false);
+    expect(result.reason).toBe('character-taken');
+    expect(host.state.players).toHaveLength(2);
+    first.session.close();
+    second.session.close();
+    host.stop();
+  });
+
+  it('tells a seated client when its character choice is taken', async () => {
+    const { creds, network, host } = makeRoom();
+    const first = makeClient(network, '先到', 'char_ninja');
+    expect((await first.session.connect({ roomId: creds.roomId })).ok).toBe(true);
+    const second = makeClient(network, '后到', 'char_girl');
+    expect((await second.session.connect({ roomId: creds.roomId })).ok).toBe(true);
+    second.session.sendIntent({
+      type: 'INTENT_SELECT_CHARACTER',
+      payload: { characterId: 'char_ninja' },
+    });
+    await vi.waitFor(() => expect(second.events).toContain('CHARACTER_TAKEN'));
+    expect(
+      host.state.players.find((player) => player.id === second.session.clientId)?.characterId,
+    ).toBe('char_girl');
+    first.session.close();
+    second.session.close();
+    host.stop();
+  });
+
+  it('settles a join that drops while pending approval', async () => {
+    const { creds, network, host, joinRequests } = makeRoom();
+    const client = makeClient(network, '掉了', 'char_ninja');
+    const pending = client.session.connect({ roomCode: creds.roomCode });
+    await vi.waitFor(() => expect(joinRequests).toHaveLength(1));
+    network.dropAll();
+    const result = await pending;
+    expect(result.ok).toBe(false);
+    expect(result.reason).toBe('connection-closed');
+    // Approving a ghost must not seat anyone.
+    joinRequests[0]?.approve();
+    expect(host.state.players).toHaveLength(1);
+    client.session.close();
+    host.stop();
+  });
+
+  it('exposes a seat token that a refreshed session can reuse', async () => {
+    const { creds, network, host } = makeRoom();
+    const first = makeClient(network, '刷新', 'char_ninja');
+    expect((await first.session.connect({ roomId: creds.roomId })).ok).toBe(true);
+    const seat = first.session.seatToken;
+    expect(seat).not.toBeNull();
+    const restored = new ClientSession({
+      nickname: '刷新',
+      characterId: 'char_ninja',
+      transport: () => network.createClient({ onError: () => {} }),
+      seat: seat as { playerId: string; token: string },
+      target: { roomId: creds.roomId },
+    });
+    const again = await restored.reconnect();
+    expect(again.ok).toBe(true);
+    expect(restored.currentStatus).toBe('joined');
+    expect(host.state.players).toHaveLength(2);
+    // The token is rotated on rebind, so the stale one is no longer accepted.
+    expect(restored.seatToken?.token).not.toBe(seat?.token);
+    first.session.close();
+    restored.close();
+    host.stop();
+  });
+});
+
+describe('transport configuration', () => {
+  it('defaults to STUN so hole punching can work, and allows an opt-out', () => {
+    const options = peerOptions({}) as { config: { iceServers: { urls: string }[] } };
+    expect(options.config.iceServers.length).toBeGreaterThan(0);
+    expect(options.config.iceServers[0]?.urls).toContain('stun:');
+    const disabled = peerOptions({ iceServers: [] }) as { config: { iceServers: unknown[] } };
+    expect(disabled.config.iceServers).toEqual([]);
+  });
+
+  it('maps the PeerJS errors that matter for REQ-026', () => {
+    expect(toTransportErrorCode('webrtc')).toBe('ice-failed');
+    expect(toTransportErrorCode('negotiation-failed')).toBe('ice-failed');
+    expect(toTransportErrorCode('socket-error')).toBe('network');
+    expect(toTransportErrorCode('invalid-key')).toBe('unavailable-id');
+    expect(toTransportErrorCode('peer-unavailable')).toBe('peer-unavailable');
+    expect(toTransportErrorCode(undefined)).toBe('unknown');
   });
 });

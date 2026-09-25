@@ -1505,24 +1505,39 @@ export function forceResolveMiniGame(
   const emitter = new Emitter(state);
   const submissions: Record<string, string> = { ...minigame.submissions };
   let filled = 0;
-  minigame.participantIds.forEach((playerId, index) => {
-    if (submissions[playerId] !== undefined) return;
+  let cursor = state.rngCursor;
+  for (const playerId of minigame.participantIds) {
+    if (submissions[playerId] !== undefined) continue;
     const explicit = actions[playerId];
-    const fallback =
-      minigame.kind === 'RPS'
-        ? (RPS_ACTIONS[index % RPS_ACTIONS.length] ?? 'ROCK')
-        : FALLBACK_ACTION[minigame.kind];
-    submissions[playerId] = explicit ?? fallback;
+    let chosen: string;
+    if (explicit !== undefined) {
+      chosen = explicit;
+    } else if (minigame.kind === 'RPS') {
+      // A fixed rotation would make a three-player forced RPS a guaranteed
+      // three-way tie, so an absent throw is drawn from the authoritative
+      // stream instead; the cursor advances with it, keeping the game
+      // deterministic for a given seed.
+      const index = rngInt(state.seed, cursor, RPS_ACTIONS.length);
+      cursor += 1;
+      chosen = RPS_ACTIONS[index] ?? FALLBACK_ACTION.RPS;
+    } else {
+      chosen = FALLBACK_ACTION[minigame.kind];
+    }
+    submissions[playerId] = chosen;
     filled += 1;
     if (explicit === undefined) {
       emitter.push('MINIGAME_FORCED', playerId, {
         minigameId: minigame.minigameId,
-        action: submissions[playerId],
+        action: chosen,
       });
     }
-  });
+  }
   if (filled === 0) return { session, events: [], rejected: null };
-  let next: GameState = { ...state, minigame: { ...minigame, submissions } };
+  let next: GameState = {
+    ...state,
+    rngCursor: cursor,
+    minigame: { ...minigame, submissions },
+  };
   next = resolveMiniGame(session, next, emitter);
   next = checkVictory({ ...session, state: next }, emitter);
   return {
