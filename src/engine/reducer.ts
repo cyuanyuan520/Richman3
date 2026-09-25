@@ -35,7 +35,7 @@ import { activeSkillEffects, applyEffects } from './effects';
 import type { SkillRegistry } from './skills';
 import { canUseSkill, rentMultiplier, triggerEffects } from './skills';
 import { pickWeighted, rngFloat, rngInt, rngIntInclusive } from './rng';
-import { MINIGAME_RESOLVERS } from './minigames';
+import { MINIGAME_RESOLVERS, RPS_ACTIONS } from './minigames';
 
 export interface GameSession {
   readonly state: GameState;
@@ -1464,6 +1464,66 @@ function applyMiniGameAction(
   if (complete) {
     next = resolveMiniGame(session, next, emitter);
   }
+  next = checkVictory({ ...session, state: next }, emitter);
+  return {
+    session: { ...session, state: flush(next, emitter) },
+    events: emitter.events,
+    rejected: null,
+  };
+}
+
+/**
+ * Fallback action per mini-game kind, used when a participant never submits.
+ * `RPS` rotates through the three throws by seat index instead so a forced
+ * resolution still produces a genuine spread of scores (all-`ROCK` would rank
+ * every player first and pay the full reward to every seat, including the one
+ * that stalled the game).
+ */
+const FALLBACK_ACTION: Readonly<Record<MiniGameDefinition['kind'], string>> = {
+  WHEEL: 'SPIN',
+  RPS: 'ROCK',
+  GACHA: 'DRAW',
+};
+
+/**
+ * Host-side escape hatch (REQ-026 companion): fills every missing submission
+ * with `actions[playerId]` or a per-kind fallback, then resolves as usual.
+ *
+ * The engine stays clock-free — P4 owns the deadline timer that calls this.
+ * It is deliberately not an intent: no client may force a resolution, and a
+ * `MINIGAME_FORCED` event names every seat whose action had to be substituted.
+ */
+export function forceResolveMiniGame(
+  session: GameSession,
+  actions: Readonly<Record<string, string>> = {},
+): ApplyResult {
+  const state = session.state;
+  if (state.phase !== 'MINIGAME' || state.minigame === null) {
+    return reject(session, 'no-minigame-running');
+  }
+  const minigame = state.minigame;
+  const emitter = new Emitter(state);
+  const submissions: Record<string, string> = { ...minigame.submissions };
+  let filled = 0;
+  minigame.participantIds.forEach((playerId, index) => {
+    if (submissions[playerId] !== undefined) return;
+    const explicit = actions[playerId];
+    const fallback =
+      minigame.kind === 'RPS'
+        ? (RPS_ACTIONS[index % RPS_ACTIONS.length] ?? 'ROCK')
+        : FALLBACK_ACTION[minigame.kind];
+    submissions[playerId] = explicit ?? fallback;
+    filled += 1;
+    if (explicit === undefined) {
+      emitter.push('MINIGAME_FORCED', playerId, {
+        minigameId: minigame.minigameId,
+        action: submissions[playerId],
+      });
+    }
+  });
+  if (filled === 0) return { session, events: [], rejected: null };
+  let next: GameState = { ...state, minigame: { ...minigame, submissions } };
+  next = resolveMiniGame(session, next, emitter);
   next = checkVictory({ ...session, state: next }, emitter);
   return {
     session: { ...session, state: flush(next, emitter) },

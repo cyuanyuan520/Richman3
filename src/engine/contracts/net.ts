@@ -25,11 +25,25 @@ const RouteFields = {
 
 /* ------------------------------------------------------- client → host */
 
+/**
+ * Seat credential presented on reconnect (REQ-011). The host issues
+ * `playerId` + `token` in `JOIN_ACCEPTED`; presenting both rebinds the caller to
+ * that seat and returns a full snapshot, so a nickname alone can never hijack a
+ * seat. Additive to protocol v1 — the field is optional and ignored on a first
+ * join.
+ */
+export const SeatCredentialSchema = z.object({
+  playerId: PlayerIdSchema,
+  token: z.string().min(8).max(64),
+});
+export type SeatCredential = z.infer<typeof SeatCredentialSchema>;
+
 export const JoinPayloadSchema = z.object({
   roomId: ROOM_ID_SCHEMA.optional(),
   roomCode: ROOM_CODE_SCHEMA.optional(),
   nickname: z.string().min(1).max(24),
   characterId: z.string().min(1).max(64).optional(),
+  reconnect: SeatCredentialSchema.optional(),
 });
 export type JoinPayload = z.infer<typeof JoinPayloadSchema>;
 
@@ -208,7 +222,17 @@ export const HostEventMessageSchema = z.discriminatedUnion('type', [
     ...EnvelopeFields,
     ...RouteFields,
     type: z.literal('JOIN_ACCEPTED'),
-    payload: z.object({ playerId: PlayerIdSchema, seatIndex: z.number().int().min(0).max(3) }),
+    payload: z.object({
+      playerId: PlayerIdSchema,
+      seatIndex: z.number().int().min(0).max(3),
+      /**
+       * Host-issued seat credential (REQ-011). Present the same value in
+       * `INTENT_JOIN.payload.reconnect` to be rebound to this seat after a drop;
+       * a nickname alone is never enough. Additive and optional so the field can
+       * be absent when a host does not issue tokens.
+       */
+      reconnectToken: z.string().min(8).max(64).optional(),
+    }),
   }),
   z.object({
     ...EnvelopeFields,
