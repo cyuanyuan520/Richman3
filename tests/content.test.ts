@@ -377,6 +377,20 @@ describe('content pack: the JSON boundary rejects broken data', () => {
     );
   });
 
+  it("rejects an EVENT node whose payload is outside the map's chaos pool", () => {
+    const broken = withPack((pack) => {
+      const events = pack.chaosEvents as Record<string, unknown>[];
+      const first = events[0];
+      if (first === undefined) throw new Error('no chaos events');
+      events.push({ ...first, id: 'chaos_extra', title: '额外事件' });
+      const center = boardOf(pack).center as Record<string, unknown>[];
+      const event = center.find((node) => node.type === 'EVENT');
+      if (event === undefined) throw new Error('no EVENT node');
+      event.payloadRef = 'chaos_extra';
+    });
+    expect(() => buildContentPack(broken)).toThrow(/not in this map's chaos pool/);
+  });
+
   it('rejects an onEnter effect that warps to a tile outside the board', () => {
     const broken = withPack((pack) => {
       const ring = boardOf(pack).ring as Record<string, unknown>[];

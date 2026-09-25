@@ -358,10 +358,19 @@ export function validateContentPack(pack: ContentPack): string[] {
         issues.push(`map ${map.id}: unknown chaos event ${eventId}`);
       }
     }
+    // `followWarp` draws EVENT nodes from this map's own pool (`map.events`),
+    // so an id that only exists globally is dead data: the node would silently
+    // fire an unrelated pool event. Checked after the global lookup so the
+    // message distinguishes a typo from a cross-map mistake.
     for (const node of map.board.center) {
-      if (node.type === 'EVENT' && !eventIds.has(node.payloadRef)) {
+      if (node.type !== 'EVENT') continue;
+      if (!eventIds.has(node.payloadRef)) {
         issues.push(
           `map ${map.id}: center node ${node.id} references unknown chaos event ${node.payloadRef}`,
+        );
+      } else if (!map.events.includes(node.payloadRef)) {
+        issues.push(
+          `map ${map.id}: center node ${node.id} references chaos event ${node.payloadRef}, which is not in this map's chaos pool`,
         );
       }
     }
