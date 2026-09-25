@@ -197,9 +197,20 @@ export function validateMapDefinition(map: MapDefinition): string[] {
 
   const ringIds = new Set(ring.map((tile) => tile.id));
   const centerIds = new Set(center.map((node) => node.id));
+  const warpSourceCounts = new Map<string, number>();
   for (const warp of warps) {
     if (!ringIds.has(warp.fromTileId)) {
       issues.push(`warp source ${warp.fromTileId} is not a ring tile`);
+    } else {
+      const source = ring.find((tile) => tile.id === warp.fromTileId);
+      // `applyTileBehaviour` only follows a warp when the tile type is WARP, so
+      // a warp declared on any other tile type would silently never fire.
+      if (source !== undefined && source.type !== 'WARP') {
+        issues.push(
+          `warp source ${warp.fromTileId} is a ${source.type} tile; only WARP tiles can warp`,
+        );
+      }
+      warpSourceCounts.set(warp.fromTileId, (warpSourceCounts.get(warp.fromTileId) ?? 0) + 1);
     }
     if (!ringIds.has(warp.toTileId) && !centerIds.has(warp.toTileId)) {
       issues.push(`warp target ${warp.toTileId} does not exist on the board`);
@@ -209,6 +220,22 @@ export function validateMapDefinition(map: MapDefinition): string[] {
     if (warp.condition !== undefined) {
       issues.push(
         `warp ${warp.fromTileId} -> ${warp.toTileId}: conditional warps are not supported`,
+      );
+    }
+    // The reducer always returns a centre visitor to the tile they entered from,
+    // so a one-way declaration would be a lie rather than a rule.
+    if (!warp.bidirectional) {
+      issues.push(
+        `warp ${warp.fromTileId} -> ${warp.toTileId}: one-way warps are not supported (the piece always returns to its entry tile)`,
+      );
+    }
+  }
+  // Insertion order follows the `warps` array, so the message order is stable.
+  for (const [tileId, count] of warpSourceCounts) {
+    // `outgoingWarp` returns the first match only, so extra edges are dead content.
+    if (count > 1) {
+      issues.push(
+        `tile ${tileId} declares ${String(count)} outgoing warps; only the first is used`,
       );
     }
   }

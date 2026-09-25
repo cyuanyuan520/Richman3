@@ -31,7 +31,12 @@ export const TARGETS = ['SELF', 'RANDOM_OPPONENT', 'ALL', 'LEADER'] as const;
 export const TargetSchema = z.enum(TARGETS);
 export type Target = z.infer<typeof TargetSchema>;
 
-export const PLAYER_STATUSES = ['SHIELD', 'SILENCED', 'LUCKY', 'UNLUCKY', 'RENT_BOOST'] as const;
+/**
+ * Only statuses the engine actually reads may appear here. `LUCKY`/`UNLUCKY`
+ * were removed in P3 because no rule consumed them, and a status that content
+ * can author but the engine ignores is a silent no-op.
+ */
+export const PLAYER_STATUSES = ['SHIELD', 'SILENCED', 'RENT_BOOST'] as const;
 export const PlayerStatusSchema = z.enum(PLAYER_STATUSES);
 export type PlayerStatus = z.infer<typeof PlayerStatusSchema>;
 

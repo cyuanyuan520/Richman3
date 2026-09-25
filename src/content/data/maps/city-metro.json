@@ -1,0 +1,473 @@
+{
+  "id": "city_metro",
+  "name": "都会大亨",
+  "theme": "modern-city",
+  "board": {
+    "ring": [
+      {
+        "id": "t00",
+        "kind": "ring",
+        "index": 0,
+        "type": "START",
+        "name": "中央车站",
+        "pos": [0, 0, 0],
+        "modelRef": "city.start_station"
+      },
+      {
+        "id": "t01",
+        "kind": "ring",
+        "index": 1,
+        "type": "PROPERTY",
+        "name": "街角便利店",
+        "pos": [1, 0, 0],
+        "price": 600,
+        "group": "blue",
+        "modelRef": "city.shop_convenience"
+      },
+      {
+        "id": "t02",
+        "kind": "ring",
+        "index": 2,
+        "type": "PROPERTY",
+        "name": "手摇奶茶铺",
+        "pos": [2, 0, 0],
+        "price": 600,
+        "group": "blue",
+        "modelRef": "city.shop_tea"
+      },
+      {
+        "id": "t03",
+        "kind": "ring",
+        "index": 3,
+        "type": "CHANCE",
+        "name": "路边小广告",
+        "pos": [3, 0, 0],
+        "modelRef": "city.chance_billboard"
+      },
+      {
+        "id": "t04",
+        "kind": "ring",
+        "index": 4,
+        "type": "PROPERTY",
+        "name": "社区公园",
+        "pos": [4, 0, 0],
+        "price": 800,
+        "group": "blue",
+        "modelRef": "city.park"
+      },
+      {
+        "id": "t05",
+        "kind": "ring",
+        "index": 5,
+        "type": "PROPERTY",
+        "name": "宠物医院",
+        "pos": [5, 0, 0],
+        "price": 800,
+        "group": "blue",
+        "modelRef": "city.hospital_pet"
+      },
+      {
+        "id": "t06",
+        "kind": "ring",
+        "index": 6,
+        "type": "TAX",
+        "name": "税务局",
+        "pos": [6, 0, 0],
+        "modelRef": "city.tax_office"
+      },
+      {
+        "id": "t07",
+        "kind": "ring",
+        "index": 7,
+        "type": "PROPERTY",
+        "name": "网红打卡墙",
+        "pos": [7, 0, 0],
+        "price": 1000,
+        "group": "yellow",
+        "modelRef": "city.wall_mural"
+      },
+      {
+        "id": "t08",
+        "kind": "ring",
+        "index": 8,
+        "type": "WARP",
+        "name": "地铁一号口",
+        "pos": [8, 0, 0],
+        "modelRef": "city.metro_entrance"
+      },
+      {
+        "id": "t09",
+        "kind": "ring",
+        "index": 9,
+        "type": "PROPERTY",
+        "name": "外卖驿站",
+        "pos": [8, 0, 1],
+        "price": 1000,
+        "group": "yellow",
+        "modelRef": "city.delivery_hub"
+      },
+      {
+        "id": "t10",
+        "kind": "ring",
+        "index": 10,
+        "type": "PROPERTY",
+        "name": "共享单车坟场",
+        "pos": [8, 0, 2],
+        "price": 1200,
+        "group": "yellow",
+        "modelRef": "city.bike_graveyard"
+      },
+      {
+        "id": "t11",
+        "kind": "ring",
+        "index": 11,
+        "type": "CHAOS",
+        "name": "整蛊屋",
+        "pos": [8, 0, 3],
+        "modelRef": "city.chaos_house",
+        "onEnter": [{ "kind": "VISUAL", "visual": "smoke_bomb" }]
+      },
+      {
+        "id": "t12",
+        "kind": "ring",
+        "index": 12,
+        "type": "PROPERTY",
+        "name": "写字楼",
+        "pos": [8, 0, 4],
+        "price": 1200,
+        "group": "yellow",
+        "modelRef": "city.office_tower"
+      },
+      {
+        "id": "t13",
+        "kind": "ring",
+        "index": 13,
+        "type": "PROPERTY",
+        "name": "直播基地",
+        "pos": [8, 0, 5],
+        "price": 1500,
+        "group": "red",
+        "modelRef": "city.studio"
+      },
+      {
+        "id": "t14",
+        "kind": "ring",
+        "index": 14,
+        "type": "PROPERTY",
+        "name": "大型商场",
+        "pos": [8, 0, 6],
+        "price": 1500,
+        "group": "red",
+        "modelRef": "city.mall"
+      },
+      {
+        "id": "t15",
+        "kind": "ring",
+        "index": 15,
+        "type": "PROPERTY",
+        "name": "五星酒店",
+        "pos": [8, 0, 7],
+        "price": 1800,
+        "group": "red",
+        "modelRef": "city.hotel_luxe"
+      },
+      {
+        "id": "t16",
+        "kind": "ring",
+        "index": 16,
+        "type": "JAIL",
+        "name": "看守所",
+        "pos": [8, 0, 8],
+        "modelRef": "city.jail"
+      },
+      {
+        "id": "t17",
+        "kind": "ring",
+        "index": 17,
+        "type": "PROPERTY",
+        "name": "高尔夫球场",
+        "pos": [7, 0, 8],
+        "price": 1800,
+        "group": "red",
+        "modelRef": "city.golf"
+      },
+      {
+        "id": "t18",
+        "kind": "ring",
+        "index": 18,
+        "type": "PROPERTY",
+        "name": "金融中心",
+        "pos": [6, 0, 8],
+        "price": 2000,
+        "group": "gold",
+        "modelRef": "city.finance_center"
+      },
+      {
+        "id": "t19",
+        "kind": "ring",
+        "index": 19,
+        "type": "BONUS",
+        "name": "年终奖",
+        "pos": [5, 0, 8],
+        "modelRef": "city.bonus_chest"
+      },
+      {
+        "id": "t20",
+        "kind": "ring",
+        "index": 20,
+        "type": "PROPERTY",
+        "name": "摩天大楼",
+        "pos": [4, 0, 8],
+        "price": 2000,
+        "group": "gold",
+        "modelRef": "city.skyscraper"
+      },
+      {
+        "id": "t21",
+        "kind": "ring",
+        "index": 21,
+        "type": "TAX",
+        "name": "个人所得税",
+        "pos": [3, 0, 8],
+        "modelRef": "city.tax_bureau"
+      },
+      {
+        "id": "t22",
+        "kind": "ring",
+        "index": 22,
+        "type": "PROPERTY",
+        "name": "老破小学区房",
+        "pos": [2, 0, 8],
+        "price": 2200,
+        "group": "gold",
+        "modelRef": "city.apartment_old"
+      },
+      {
+        "id": "t23",
+        "kind": "ring",
+        "index": 23,
+        "type": "WARP",
+        "name": "地铁二号口",
+        "pos": [1, 0, 8],
+        "modelRef": "city.metro_entrance"
+      },
+      {
+        "id": "t24",
+        "kind": "ring",
+        "index": 24,
+        "type": "CHANCE",
+        "name": "失物招领",
+        "pos": [0, 0, 8],
+        "modelRef": "city.lost_and_found"
+      },
+      {
+        "id": "t25",
+        "kind": "ring",
+        "index": 25,
+        "type": "WARP",
+        "name": "地下通道",
+        "pos": [0, 0, 7],
+        "modelRef": "city.underpass"
+      },
+      {
+        "id": "t26",
+        "kind": "ring",
+        "index": 26,
+        "type": "CHAOS",
+        "name": "整蛊屋·分店",
+        "pos": [0, 0, 6],
+        "modelRef": "city.chaos_house",
+        "onEnter": [{ "kind": "VISUAL", "visual": "stink_cloud" }]
+      },
+      {
+        "id": "t27",
+        "kind": "ring",
+        "index": 27,
+        "type": "EVENT",
+        "name": "城市突发事件",
+        "pos": [0, 0, 5],
+        "modelRef": "city.event_plaza"
+      },
+      {
+        "id": "t28",
+        "kind": "ring",
+        "index": 28,
+        "type": "WARP",
+        "name": "抽卡机入口",
+        "pos": [0, 0, 4],
+        "modelRef": "city.gacha_gate"
+      },
+      {
+        "id": "t29",
+        "kind": "ring",
+        "index": 29,
+        "type": "MINIGAME",
+        "name": "中央游乐场",
+        "pos": [0, 0, 3],
+        "modelRef": "city.minigame_park"
+      },
+      {
+        "id": "t30",
+        "kind": "ring",
+        "index": 30,
+        "type": "WARP",
+        "name": "广场扶梯",
+        "pos": [0, 0, 2],
+        "modelRef": "city.escalator"
+      },
+      {
+        "id": "t31",
+        "kind": "ring",
+        "index": 31,
+        "type": "WARP",
+        "name": "直达电梯",
+        "pos": [0, 0, 1],
+        "modelRef": "city.express_lift"
+      }
+    ],
+    "center": [
+      {
+        "id": "c_wheel",
+        "kind": "center",
+        "type": "MINIGAME",
+        "name": "幸运大转盘",
+        "payloadRef": "mg_wheel",
+        "pos": [4, 0, 4]
+      },
+      {
+        "id": "c_rps",
+        "kind": "center",
+        "type": "MINIGAME",
+        "name": "猜拳擂台",
+        "payloadRef": "mg_rps",
+        "pos": [2, 0, 2]
+      },
+      {
+        "id": "c_gacha",
+        "kind": "center",
+        "type": "MINIGAME",
+        "name": "欧气抽卡机",
+        "payloadRef": "mg_gacha",
+        "pos": [6, 0, 2]
+      },
+      {
+        "id": "c_shop",
+        "kind": "center",
+        "type": "SHOP",
+        "name": "中央道具铺",
+        "payloadRef": "mg_gacha",
+        "pos": [6, 0, 6]
+      },
+      {
+        "id": "c_plaza",
+        "kind": "center",
+        "type": "EVENT",
+        "name": "中央广场",
+        "payloadRef": "chaos_mass_silence",
+        "pos": [4, 0, 6]
+      },
+      {
+        "id": "c_exit",
+        "kind": "center",
+        "type": "TELEPORT",
+        "name": "直达电梯",
+        "payloadRef": "t00",
+        "pos": [2, 0, 6]
+      }
+    ],
+    "warps": [
+      { "fromTileId": "t08", "toTileId": "c_wheel", "bidirectional": true },
+      { "fromTileId": "t23", "toTileId": "c_rps", "bidirectional": true },
+      { "fromTileId": "t25", "toTileId": "c_shop", "bidirectional": true },
+      { "fromTileId": "t28", "toTileId": "c_gacha", "bidirectional": true },
+      { "fromTileId": "t30", "toTileId": "c_plaza", "bidirectional": true },
+      { "fromTileId": "t31", "toTileId": "c_exit", "bidirectional": true }
+    ]
+  },
+  "assets": [
+    "city.road",
+    "city.start_station",
+    "city.shop_convenience",
+    "city.shop_tea",
+    "city.chance_billboard",
+    "city.park",
+    "city.hospital_pet",
+    "city.tax_office",
+    "city.wall_mural",
+    "city.metro_entrance",
+    "city.delivery_hub",
+    "city.bike_graveyard",
+    "city.chaos_house",
+    "city.office_tower",
+    "city.studio",
+    "city.mall",
+    "city.hotel_luxe",
+    "city.jail",
+    "city.golf",
+    "city.finance_center",
+    "city.bonus_chest",
+    "city.skyscraper",
+    "city.tax_bureau",
+    "city.apartment_old",
+    "city.lost_and_found",
+    "city.underpass",
+    "city.event_plaza",
+    "city.gacha_gate",
+    "city.minigame_park",
+    "city.escalator",
+    "city.express_lift",
+    "city.house_1",
+    "city.house_2",
+    "city.house_3",
+    "city.house_4",
+    "city.dice",
+    "char_farmer",
+    "char_girl",
+    "char_madame",
+    "char_ninja",
+    "portrait_farmer",
+    "portrait_girl",
+    "portrait_madame",
+    "portrait_ninja"
+  ],
+  "rules": {
+    "startingMoney": 20000,
+    "salary": 3000,
+    "baseRentRatio": 0.15,
+    "rentMultipliers": [1, 2, 4, 8, 16],
+    "maxLevel": 4,
+    "upgradeCostRatio": 0.5,
+    "taxRatio": 0.1,
+    "bonusRatio": 0.12,
+    "jailTurns": 2,
+    "chaosTriggerChance": { "LOW": 0.35, "MEDIUM": 0.6, "HIGH": 0.9 }
+  },
+  "events": [
+    "chaos_stinky_socks",
+    "chaos_lost_wallet",
+    "chaos_red_packet",
+    "chaos_swap",
+    "chaos_toll",
+    "chaos_leader_treat",
+    "chaos_scratch_card",
+    "chaos_banana_peel",
+    "chaos_free_ride",
+    "chaos_stolen_delivery",
+    "chaos_livestream_fail",
+    "chaos_square_dance",
+    "chaos_ex_calling",
+    "chaos_shield",
+    "chaos_zipper_broken",
+    "chaos_metro_overshoot",
+    "chaos_taxi_detour",
+    "chaos_stink_bomb",
+    "chaos_learn_rent",
+    "chaos_slap",
+    "chaos_money_rain",
+    "chaos_grass_cut",
+    "chaos_toilet_break",
+    "chaos_dog_walk",
+    "chaos_boss_call",
+    "chaos_mass_silence"
+  ]
+}

@@ -1,0 +1,27 @@
+{
+  "colors": {
+    "skyTop": "#8fd3ff",
+    "skyBottom": "#ffe9b8",
+    "ground": "#7ec850",
+    "road": "#b9bcc9",
+    "ringBase": "#fff3d6",
+    "ringEdge": "#e0b878",
+    "accentPrimary": "#ff5a5f",
+    "accentSecondary": "#ffb400",
+    "accentCool": "#2ec4b6",
+    "uiPanel": "#fffdf5",
+    "uiText": "#3a2f2a",
+    "uiHighlight": "#ff8a3d",
+    "uiShadow": "#c9b79c",
+    "groupBlue": "#4a90e2",
+    "groupYellow": "#f5c518",
+    "groupRed": "#e94b3c",
+    "groupGold": "#d4a017",
+    "player_farmer": "#7ec850",
+    "player_girl": "#ff7fb0",
+    "player_madame": "#c85ad4",
+    "player_ninja": "#5a6bd4"
+  },
+  "lightIntensity": 3.2,
+  "shadowSoftness": 0.65
+}

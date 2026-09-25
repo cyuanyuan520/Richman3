@@ -1,0 +1,234 @@
+[
+  {
+    "id": "chaos_stinky_socks",
+    "title": "臭袜子袭击",
+    "text": "你的袜子被人换成三天没洗的那双，全场捂鼻后退三尺——强制跳过下一回合。",
+    "weight": 8,
+    "target": "SELF",
+    "effect": [{ "kind": "SKIP_TURN", "value": 1 }]
+  },
+  {
+    "id": "chaos_lost_wallet",
+    "title": "钱包掉了",
+    "text": "钱包从裤兜滑进下水道，捞上来只剩几张泡烂的纸巾。",
+    "weight": 10,
+    "target": "SELF",
+    "effect": [{ "kind": "MONEY", "value": -1200 }]
+  },
+  {
+    "id": "chaos_red_packet",
+    "title": "天降红包",
+    "text": "群里抢到一个大红包，手气最佳竟然是你。",
+    "weight": 10,
+    "target": "SELF",
+    "effect": [{ "kind": "MONEY", "value": 1500 }]
+  },
+  {
+    "id": "chaos_swap",
+    "title": "乾坤大挪移",
+    "text": "你和一个倒霉蛋瞬间互换了位置，谁都没反应过来。",
+    "weight": 6,
+    "target": "RANDOM_OPPONENT",
+    "effect": [{ "kind": "SWAP_POS" }]
+  },
+  {
+    "id": "chaos_toll",
+    "title": "全员罚款",
+    "text": "广场管理处临时加收噪音费，在场的谁都跑不掉。",
+    "weight": 6,
+    "target": "ALL",
+    "effect": [
+      { "kind": "MONEY", "value": -800 },
+      { "kind": "VISUAL", "visual": "rubber_chicken" }
+    ]
+  },
+  {
+    "id": "chaos_leader_treat",
+    "title": "首富请客",
+    "text": "全场一致通过：有钱人今晚请客，账单归榜首。",
+    "weight": 7,
+    "target": "LEADER",
+    "effect": [{ "kind": "MONEY", "value": -2000 }]
+  },
+  {
+    "id": "chaos_scratch_card",
+    "title": "刮刮乐中奖",
+    "text": "路边随手买的一张刮刮乐，居然中了个不小的奖。",
+    "weight": 4,
+    "target": "SELF",
+    "effect": [
+      { "kind": "MONEY", "value": 3000 },
+      { "kind": "VISUAL", "visual": "confetti" }
+    ]
+  },
+  {
+    "id": "chaos_banana_peel",
+    "title": "踩到香蕉皮",
+    "text": "一脚踩上去，滑出去老远，倒退 3 格。",
+    "weight": 8,
+    "target": "SELF",
+    "effect": [
+      { "kind": "MOVE", "value": -3 },
+      { "kind": "VISUAL", "visual": "banana_peel" }
+    ]
+  },
+  {
+    "id": "chaos_free_ride",
+    "title": "顺风车",
+    "text": "热心司机顺路捎你一程，一口气前进 4 格。",
+    "weight": 8,
+    "target": "SELF",
+    "effect": [{ "kind": "MOVE", "value": 4 }]
+  },
+  {
+    "id": "chaos_stolen_delivery",
+    "title": "外卖被偷",
+    "text": "下楼取餐时发现外卖柜空了，只剩一张纸条写着「谢谢款待」。",
+    "weight": 9,
+    "target": "SELF",
+    "effect": [{ "kind": "MONEY", "value": -600 }]
+  },
+  {
+    "id": "chaos_livestream_fail",
+    "title": "直播翻车",
+    "text": "滤镜突然掉线，十万观众看清了你的真面目，当场掉粉赔钱。",
+    "weight": 6,
+    "target": "SELF",
+    "effect": [
+      { "kind": "MONEY", "value": -1500 },
+      { "kind": "VISUAL", "visual": "disco_ball" }
+    ]
+  },
+  {
+    "id": "chaos_square_dance",
+    "title": "广场舞霸场",
+    "text": "大妈们把你的车围在中间跳了整整一下午，你哪儿也去不了。",
+    "weight": 6,
+    "target": "RANDOM_OPPONENT",
+    "effect": [{ "kind": "SKIP_TURN", "value": 1 }]
+  },
+  {
+    "id": "chaos_ex_calling",
+    "title": "前任来电",
+    "text": "凌晨三点，前任连打七个电话，你失眠了两天。",
+    "weight": 4,
+    "target": "SELF",
+    "effect": [{ "kind": "SKIP_TURN", "value": 2 }]
+  },
+  {
+    "id": "chaos_shield",
+    "title": "金钟罩",
+    "text": "出门前被老妈硬塞了一件羽绒服，意外地抗揍。",
+    "weight": 5,
+    "target": "SELF",
+    "effect": [{ "kind": "STATUS", "status": "SHIELD", "duration": 2 }]
+  },
+  {
+    "id": "chaos_zipper_broken",
+    "title": "裤链崩了",
+    "text": "在最重要的场合，裤链选择了背叛你——对方社死，两回合不敢开口用技能。",
+    "weight": 5,
+    "target": "RANDOM_OPPONENT",
+    "effect": [{ "kind": "STATUS", "status": "SILENCED", "duration": 2 }]
+  },
+  {
+    "id": "chaos_metro_overshoot",
+    "title": "地铁坐过站",
+    "text": "刷手机刷过了头，一睁眼已经到终点站，你被丢在城市的另一头。",
+    "weight": 5,
+    "target": "SELF",
+    "effect": [{ "kind": "WARP", "tileId": "t31" }]
+  },
+  {
+    "id": "chaos_taxi_detour",
+    "title": "打车被绕路",
+    "text": "司机说走这条路最快，然后绕了半个城市，把你放在另一个地铁口。",
+    "weight": 4,
+    "target": "SELF",
+    "effect": [{ "kind": "WARP", "tileId": "t08" }]
+  },
+  {
+    "id": "chaos_stink_bomb",
+    "title": "螺蛳粉炸弹",
+    "text": "有人偷偷在中央空调里放了一碗螺蛳粉，全场每人熏掉 300 块的精神损失费。",
+    "weight": 6,
+    "target": "ALL",
+    "effect": [
+      { "kind": "MONEY", "value": -300 },
+      { "kind": "VISUAL", "visual": "stink_cloud" }
+    ]
+  },
+  {
+    "id": "chaos_learn_rent",
+    "title": "偷师收租婆",
+    "text": "你偷偷学会了收租婆的绝活，本回合收租也能狮子大开口。",
+    "weight": 3,
+    "target": "SELF",
+    "effect": [{ "kind": "SKILL", "skillId": "skill_madame_rent" }]
+  },
+  {
+    "id": "chaos_slap",
+    "title": "当众打脸",
+    "text": "你在群里吹牛被当场截屏，赔了 1000 块请大家喝奶茶。",
+    "weight": 7,
+    "target": "RANDOM_OPPONENT",
+    "effect": [{ "kind": "MONEY", "value": -1000 }]
+  },
+  {
+    "id": "chaos_money_rain",
+    "title": "红包雨",
+    "text": "商场搞活动撒红包雨，在场每人捡到 500 块。",
+    "weight": 6,
+    "target": "ALL",
+    "effect": [
+      { "kind": "MONEY", "value": 500 },
+      { "kind": "VISUAL", "visual": "money_rain" }
+    ]
+  },
+  {
+    "id": "chaos_grass_cut",
+    "title": "被当韭菜割",
+    "text": "榜首被大家一致认定为「最该贡献的人」，割了一把韭菜。",
+    "weight": 5,
+    "target": "LEADER",
+    "effect": [{ "kind": "MONEY", "value": -1500 }]
+  },
+  {
+    "id": "chaos_toilet_break",
+    "title": "蹲坑错过班车",
+    "text": "关键时刻蹲了个坑，出来时末班车刚走，还踩了一脚水。",
+    "weight": 7,
+    "target": "SELF",
+    "effect": [
+      { "kind": "SKIP_TURN", "value": 1 },
+      { "kind": "MONEY", "value": -300 }
+    ]
+  },
+  {
+    "id": "chaos_dog_walk",
+    "title": "被自家狗拽飞",
+    "text": "遛狗时狗突然追猫，你被拽着一路倒退了 5 格。",
+    "weight": 6,
+    "target": "SELF",
+    "effect": [{ "kind": "MOVE", "value": -5 }]
+  },
+  {
+    "id": "chaos_boss_call",
+    "title": "老板来电",
+    "text": "周末晚上老板突然来电「聊两句」，两回合内你都没心情掷骰子。",
+    "weight": 4,
+    "target": "RANDOM_OPPONENT",
+    "effect": [{ "kind": "SKIP_TURN", "value": 2 }]
+  },
+  {
+    "id": "chaos_mass_silence",
+    "title": "全场社死",
+    "text": "群里突然开始回顾大家三年前的尴尬发言，全场安静，一回合谁都不好意思用技能。",
+    "weight": 4,
+    "target": "ALL",
+    "effect": [
+      { "kind": "STATUS", "status": "SILENCED", "duration": 1 },
+      { "kind": "MONEY", "value": -200 }
+    ]
+  }
+]

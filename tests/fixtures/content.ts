@@ -1,7 +1,7 @@
 /**
- * Deterministic content used only by engine tests. Phase 3 replaces these with
- * the real four-character content pack; keeping them in `tests/` means they
- * never reach the production bundle.
+ * Deterministic content used only by engine unit tests. The shipped pack lives
+ * in `src/content`; these fixtures stay minimal so engine tests fail for engine
+ * reasons, not because someone rebalanced the real map.
  */
 
 import type {
@@ -81,9 +81,9 @@ export const TEST_MAP: MapDefinition = {
       { id: 'c_shop', kind: 'center', type: 'SHOP', name: '道具铺', payloadRef: 'mg_gacha' },
     ],
     warps: [
+      // One conforming warp: only WARP tiles may warp, only the first edge per
+      // tile is honoured, and the piece always returns to its entry tile.
       { fromTileId: 't7', toTileId: 'c_wheel', bidirectional: true },
-      { fromTileId: 't7', toTileId: 'c_plaza', bidirectional: false },
-      { fromTileId: 't11', toTileId: 'c_shop', bidirectional: false },
     ],
   },
   assets: [],

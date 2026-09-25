@@ -1,0 +1,66 @@
+[
+  {
+    "id": "char_farmer",
+    "name": "土伯·阿旺",
+    "archetype": "farmer",
+    "modelRef": "char_farmer",
+    "portraitRef": "portrait_farmer",
+    "personality": "抠门但命硬，最大的爱好是把钱埋进后院再挖出来数一遍。",
+    "skill": {
+      "id": "skill_farmer_dawn",
+      "name": "起早贪黑",
+      "desc": "被动：每回合开始时顺手捡到 300 元。",
+      "type": "PASSIVE",
+      "trigger": "ON_TURN_START",
+      "effect": [{ "kind": "MONEY", "value": 300 }]
+    }
+  },
+  {
+    "id": "char_girl",
+    "name": "元气小妹·糖糖",
+    "archetype": "girl",
+    "modelRef": "char_girl",
+    "portraitRef": "portrait_girl",
+    "personality": "行走的扩音器，走到哪儿直播间就开到哪儿。",
+    "skill": {
+      "id": "skill_girl_livestream",
+      "name": "直播带货",
+      "desc": "主动（冷却 3 回合）：粉丝疯狂刷礼物，立刻到账 2500 元。",
+      "type": "ACTIVE",
+      "cooldown": 3,
+      "effect": [{ "kind": "MONEY", "value": 2500 }]
+    }
+  },
+  {
+    "id": "char_madame",
+    "name": "收租婆·珍姐",
+    "archetype": "madame",
+    "modelRef": "char_madame",
+    "portraitRef": "portrait_madame",
+    "personality": "拖鞋一响，租客心慌；算账比计算器快。",
+    "skill": {
+      "id": "skill_madame_rent",
+      "name": "狮子大开口",
+      "desc": "被动：收取租金时额外 +25%。",
+      "type": "PASSIVE",
+      "trigger": "ON_PAY",
+      "effect": [{ "kind": "STATUS", "status": "RENT_BOOST", "duration": 1, "value": 0.25 }]
+    }
+  },
+  {
+    "id": "char_ninja",
+    "name": "隐形忍·阿影",
+    "archetype": "ninja",
+    "modelRef": "char_ninja",
+    "portraitRef": "portrait_ninja",
+    "personality": "存在感极低，据说连他自己的影子都经常找不到他。",
+    "skill": {
+      "id": "skill_ninja_shadow",
+      "name": "影分身步",
+      "desc": "触发：每次掷骰后额外前进 1 格。",
+      "type": "TRIGGER",
+      "trigger": "ON_ROLL",
+      "effect": [{ "kind": "MOVE", "value": 1 }]
+    }
+  }
+]
