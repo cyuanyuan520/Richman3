@@ -1,0 +1,77 @@
+name: assets
+
+# The 3D kit is generated, not hand-authored, so it needs its own check: a clean
+# regenerate must be structurally identical to what is committed. Kept separate
+# from ci.yml because it needs a ~370 MB Blender download and is only relevant
+# when the generator, the config or the content data change.
+
+on:
+  push:
+    paths:
+      - 'scripts/build_assets.py'
+      - 'scripts/build-models.mjs'
+      - 'scripts/check-assets.mjs'
+      - 'assets.config.json'
+      - 'src/content/data/**'
+      - 'public/models/**'
+      - '.github/workflows/assets.yml'
+  pull_request:
+    paths:
+      - 'scripts/build_assets.py'
+      - 'scripts/build-models.mjs'
+      - 'scripts/check-assets.mjs'
+      - 'assets.config.json'
+      - 'src/content/data/**'
+      - '.github/workflows/assets.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  kit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      BLENDER_VERSION: 5.2.2
+      BLENDER_BIN: ${{ github.workspace }}/blender/blender
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Cache Blender
+        id: blender-cache
+        uses: actions/cache@v4
+        with:
+          path: blender
+          key: blender-${{ runner.os }}-${{ env.BLENDER_VERSION }}
+
+      - name: Install Blender
+        if: steps.blender-cache.outputs.cache-hit != 'true'
+        run: |
+          set -euo pipefail
+          url="https://download.blender.org/release/Blender5.2/blender-${BLENDER_VERSION}-linux-x64.tar.xz"
+          curl -fsSL "$url" -o blender.tar.xz
+          tar -xJf blender.tar.xz
+          mv "blender-${BLENDER_VERSION}-linux-x64" blender
+          rm blender.tar.xz
+
+      - name: Report Blender version
+        run: '"$BLENDER_BIN" --version | head -3'
+
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build the kit
+        run: pnpm build:models
+
+      - name: Check structural idempotency
+        run: pnpm check:assets
+
+      - name: Check the manifest against the content
+        run: pnpm exec vitest run tests/assets.test.ts

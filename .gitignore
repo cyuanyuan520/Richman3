@@ -48,5 +48,8 @@ coverage/
 # typescript build info
 *.tsbuildinfo
 
+# scratch space for generated-asset checks
+.tmp/
+
 # vercel
 .vercel

@@ -20,7 +20,9 @@
     "format:check": "prettier --check .",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:coverage": "vitest run --coverage"
+    "test:coverage": "vitest run --coverage",
+    "build:models": "node scripts/build-models.mjs",
+    "check:assets": "node scripts/check-assets.mjs"
   },
   "dependencies": {
     "@react-three/drei": "^10.7.8",

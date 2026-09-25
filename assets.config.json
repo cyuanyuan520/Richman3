@@ -1,0 +1,12 @@
+{
+  "themeTokens": "src/content/data/theme.json",
+  "manifestName": "assets.manifest.json",
+  "sources": {
+    "map": "src/content/data/maps/city-metro.json",
+    "characters": "src/content/data/characters.json"
+  },
+  "budgets": {
+    "maxTotalBytes": 5242880,
+    "maxAssetBytes": 1048576
+  }
+}

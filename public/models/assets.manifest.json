@@ -1,0 +1,1063 @@
+{
+  "assets": [
+    {
+      "animated": false,
+      "bounds": [
+        2.12,
+        2.12,
+        0.24
+      ],
+      "bytes": 7856,
+      "glbPath": "public/models/city.road.glb",
+      "key": "city.road",
+      "materials": [
+        "ringBase",
+        "ringEdge",
+        "road"
+      ],
+      "scale": 1.0,
+      "tags": [
+        "tile",
+        "ring-base"
+      ],
+      "triangles": 72,
+      "vertices": 48
+    },
+    {
+      "animated": false,
+      "bounds": [
+        2.12,
+        2.12,
+        0.8
+      ],
+      "bytes": 9340,
+      "glbPath": "public/models/city.start_station.glb",
+      "key": "city.start_station",
+      "materials": [
+        "accentPrimary",
+        "accentSecondary",
+        "ringBase",
+        "ringEdge"
+      ],
+      "scale": 1.0,
+      "tags": [
+        "tile",
+        "landmark"
+      ],
+      "triangles": 84,
+      "vertices": 56
+    },
+    {
+      "animated": false,
+      "bounds": [
+        2.12,
+        2.16,
+        1.41
+      ],
+      "bytes": 13572,
+      "glbPath": "public/models/city.shop_convenience.glb",
+      "key": "city.shop_convenience",
+      "materials": [
+        "accentCool",
+        "accentPrimary",
+        "accentSecondary",
+        "groupBlue",
+        "ringBase",
+        "ringEdge"
+      ],
+      "scale": 1.0,
+      "tags": [
+        "tile",
+        "building",
+        "group:blue"
+      ],
+      "triangles": 120,
+      "vertices": 80
+    },
+    {
+      "animated": false,
+      "bounds": [
+        2.12,
+        2.12,
+        1.46
+      ],
+      "bytes": 14588,
+      "glbPath": "public/models/city.shop_tea.glb",
+      "key": "city.shop_tea",
+      "materials": [
+        "accentCool",
+        "accentPrimary",
+        "accentSecondary",
+        "groupYellow",
+        "ringBase",
+        "ringEdge"
+      ],
+      "scale": 1.0,
+      "tags": [
+        "tile",
+        "building",
+        "group:yellow"
+      ],
+      "triangles": 130,
+      "vertices": 85
+    },
+    {
+      "animated": false,
+      "bounds": [
+        2.12,
+        2.12,
+        1.95
+      ],
+      "bytes": 10908,
+      "glbPath": "public/models/city.chance_billboard.glb",
+      "key": "city.chance_billboard",
+      "materials": [
+        "accentSecondary",
+        "ringBase",
+        "ringEdge",
+        "uiText"
+      ],
+      "scale": 1.0,
+      "tags": [
+        "tile",
+        "prop"
+      ],
+      "triangles": 108,
+      "vertices": 68
+    },
+    {
+      "animated": false,
+      "bounds": [
+        2.71,
+        2.12,
+        1.5
+      ],
+      "bytes": 45688,
+      "glbPath": "public/models/city.park.glb",
+      "key": "city.park",
+      "materials": [
+        "accentCool",
+        "groupBlue",
+        "ringBase",
+        "ringEdge",
+        "uiText"
+      ],
+      "scale": 1.0,
+      "tags": [
+        "tile",
+        "prop"
+      ],
+      "triangles": 560,
+      "vertices": 300
+    },
+    {
+      "animated": false,
+      "bounds": [
+        2.12,
+        2.12,
+        1.45
+      ],
+      "bytes": 13860,
+      "glbPath": "public/models/city.hospital_pet.glb",
+      "key": "city.hospital_pet",
+      "materials": [
+        "accentCool",
+        "accentPrimary",
+        "ringBase",
+        "ringEdge",
+        "uiPanel"
+      ],
+      "scale": 1.0,
+      "tags": [
+        "tile",
+        "building"
+      ],
+      "triangles": 132,
+      "vertices": 88
+    },
+    {
+      "animated": false,
+      "bounds": [
+        2.12,
+        2.12,
+        1.8
+      ],
+      "bytes": 16764,
+      "glbPath": "public/models/city.tax_office.glb",
+      "key": "city.tax_office",
+      "materials": [
+        "accentCool",
+        "accentPrimary",
+        "accentSecondary",
+        "ringBase",
+        "ringEdge",
+        "uiShadow"
+      ],
+      "scale": 1.0,
+      "tags": [
+        "tile",
+        "building",
+        "group:red"
+      ],
+      "triangles": 176,
+      "vertices": 112
+    },
+    {
+      "animated": false,
+      "bounds": [
+        2.12,
+        2.12,
+        1.2
+      ],
+      "bytes": 10920,
+      "glbPath": "public/models/city.wall_mural.glb",
+      "key": "city.wall_mural",
+      "materials": [
+        "accentCool",
+        "accentSecondary",
+        "groupRed",
+        "ringBase",
+        "ringEdge"
+      ],
+      "scale": 1.0,
+      "tags": [
+        "tile",
+        "prop",
+        "group:red"
+      ],
+      "triangles": 96,
+      "vertices": 64
+    },
+    {
+      "animated": false,
+      "bounds": [
+        2.12,
+        2.12,
+        1.25
+      ],
+      "bytes": 12632,
+      "glbPath": "public/models/city.metro_entrance.glb",
+      "key": "city.metro_entrance",
+      "materials": [
+        "accentCool",
+        "ringBase",
+        "ringEdge",
+        "uiText"
+      ],
+      "scale": 1.0,
+      "tags": [
+        "tile",
+        "warp",
+        "landmark"
+      ],
+      "triangles": 136,
+      "vertices": 84
+    },
+    {
+      "animated": false,
+      "bounds": [
+        2.12,
+        2.12,
+        0.9
+      ],
+      "bytes": 13468,
+      "glbPath": "public/models/city.delivery_hub.glb",
+      "key": "city.delivery_hub",
+      "materials": [
+        "accentCool",
+        "accentPrimary",
+        "accentSecondary",
+        "groupYellow",
+        "ringBase",
+        "ringEdge"
+      ],
+      "scale": 1.0,
+      "tags": [
+        "tile",
+        "building",
+        "group:yellow"
+      ],
+      "triangles": 120,
+      "vertices": 80
+    },
+    {
+      "animated": false,
+      "bounds": [
+        2.12,
+        2.12,
+        0.57
+      ],
+      "bytes": 11576,
+      "glbPath": "public/models/city.bike_graveyard.glb",
+      "key": "city.bike_graveyard",
+      "materials": [
+        "accentCool",
+        "accentPrimary",
+        "accentSecondary",
+        "ringBase",
+        "ringEdge"
+      ],
+      "scale": 1.0,
+      "tags": [
+        "tile",
+        "prop"
+      ],
+      "triangles": 96,
+      "vertices": 64
+    },
+    {
+      "animated": false,
+      "bounds": [
+        2.12,
+        2.12,
+        2.2
+      ],
+      "bytes": 15672,
+      "glbPath": "public/models/city.chaos_house.glb",
+      "key": "city.chaos_house",
+      "materials": [
+        "accentCool",
+        "accentPrimary",
+        "ringBase",
+        "ringEdge",
+        "uiPanel",
+        "uiText"
+      ],
+      "scale": 1.0,
+      "tags": [
+        "tile",
+        "building",
+        "chaos"
+      ],
+      "triangles": 146,
+      "vertices": 95
+    },
+    {
+      "animated": false,
+      "bounds": [
+        2.12,
+        2.12,
+        1.9
+      ],
+      "bytes": 16336,
+      "glbPath": "public/models/city.office_tower.glb",
+      "key": "city.office_tower",
+      "materials": [
+        "accentCool",
+        "ringBase",
+        "ringEdge",
+        "uiPanel"
+      ],
+      "scale": 1.0,
+      "tags": [
+        "tile",
+        "building",
+        "group:blue"
+      ],
+      "triangles": 180,
+      "vertices": 120
+    },
+    {
+      "animated": false,
+      "bounds": [
+        2.12,
+        2.12,
+        1.8
+      ],
+      "bytes": 16332,
+      "glbPath": "public/models/city.studio.glb",
+      "key": "city.studio",
+      "materials": [
+        "accentCool",
+        "accentPrimary",
+        "accentSecondary",
+        "groupRed",
+        "ringBase",
+        "ringEdge"
+      ],
+      "scale": 1.0,
+      "tags": [
+        "tile",
+        "building",
+        "group:red"
+      ],
+      "triangles": 168,
+      "vertices": 108
+    },
+    {
+      "animated": false,
+      "bounds": [
+        2.12,
+        2.12,
+        1.56
+      ],
+      "bytes": 14764,
+      "glbPath": "public/models/city.mall.glb",
+      "key": "city.mall",
+      "materials": [
+        "accentCool",
+        "accentPrimary",
+        "groupGold",
+        "ringBase",
+        "ringEdge",
+        "uiPanel"
+      ],
+      "scale": 1.0,
+      "tags": [
+        "tile",
+        "building",
+        "group:gold"
+      ],
+      "triangles": 144,
+      "vertices": 96
+    },
+    {
+      "animated": false,
+      "bounds": [
+        2.12,
+        2.12,
+        2.17
+      ],
+      "bytes": 33016,
+      "glbPath": "public/models/city.hotel_luxe.glb",
+      "key": "city.hotel_luxe",
+      "materials": [
+        "accentCool",
+        "accentPrimary",
+        "accentSecondary",
+        "groupGold",
+        "ringBase",
+        "ringEdge"
+      ],
+      "scale": 1.0,
+      "tags": [
+        "tile",
+        "building",
+        "group:gold"
+      ],
+      "triangles": 380,
+      "vertices": 218
+    },
+    {
+      "animated": false,
+      "bounds": [
+        2.12,
+        2.12,
+        1.21
+      ],
+      "bytes": 13392,
+      "glbPath": "public/models/city.jail.glb",
+      "key": "city.jail",
+      "materials": [
+        "ringBase",
+        "ringEdge",
+        "uiShadow",
+        "uiText"
+      ],
+      "scale": 1.0,
+      "tags": [
+        "tile",
+        "building"
+      ],
+      "triangles": 144,
+      "vertices": 92
+    },
+    {
+      "animated": false,
+      "bounds": [
+        2.12,
+        2.12,
+        1.35
+      ],
+      "bytes": 12328,
+      "glbPath": "public/models/city.golf.glb",
+      "key": "city.golf",
+      "materials": [
+        "accentPrimary",
+        "ground",
+        "ringBase",
+        "ringEdge",
+        "uiPanel"
+      ],
+      "scale": 1.0,
+      "tags": [
+        "tile",
+        "prop"
+      ],
+      "triangles": 110,
+      "vertices": 71
+    },
+    {
+      "animated": false,
+      "bounds": [
+        2.12,
+        2.12,
+        2.1
+      ],
+      "bytes": 18012,
+      "glbPath": "public/models/city.finance_center.glb",
+      "key": "city.finance_center",
+      "materials": [
+        "accentCool",
+        "ringBase",
+        "ringEdge",
+        "uiPanel"
+      ],
+      "scale": 1.0,
+      "tags": [
+        "tile",
+        "building",
+        "group:blue"
+      ],
+      "triangles": 204,
+      "vertices": 136
+    },
+    {
+      "animated": false,
+      "bounds": [
+        2.12,
+        2.12,
+        0.92
+      ],
+      "bytes": 12464,
+      "glbPath": "public/models/city.bonus_chest.glb",
+      "key": "city.bonus_chest",
+      "materials": [
+        "accentPrimary",
+        "accentSecondary",
+        "groupGold",
+        "ringBase",
+        "ringEdge"
+      ],
+      "scale": 1.0,
+      "tags": [
+        "tile",
+        "bonus"
+      ],
+      "triangles": 120,
+      "vertices": 76
+    },
+    {
+      "animated": false,
+      "bounds": [
+        2.12,
+        2.12,
+        3.25
+      ],
+      "bytes": 21900,
+      "glbPath": "public/models/city.skyscraper.glb",
+      "key": "city.skyscraper",
+      "materials": [
+        "accentCool",
+        "accentPrimary",
+        "ringBase",
+        "ringEdge",
+        "uiPanel"
+      ],
+      "scale": 1.0,
+      "tags": [
+        "tile",
+        "building",
+        "group:gold"
+      ],
+      "triangles": 248,
+      "vertices": 164
+    },
+    {
+      "animated": false,
+      "bounds": [
+        2.12,
+        2.12,
+        1.3
+      ],
+      "bytes": 14724,
+      "glbPath": "public/models/city.tax_bureau.glb",
+      "key": "city.tax_bureau",
+      "materials": [
+        "accentCool",
+        "accentPrimary",
+        "accentSecondary",
+        "ringBase",
+        "ringEdge",
+        "uiShadow"
+      ],
+      "scale": 1.0,
+      "tags": [
+        "tile",
+        "building",
+        "group:red"
+      ],
+      "triangles": 144,
+      "vertices": 96
+    },
+    {
+      "animated": false,
+      "bounds": [
+        2.12,
+        2.12,
+        1.75
+      ],
+      "bytes": 16948,
+      "glbPath": "public/models/city.apartment_old.glb",
+      "key": "city.apartment_old",
+      "materials": [
+        "accentCool",
+        "accentSecondary",
+        "ringBase",
+        "ringEdge",
+        "uiShadow",
+        "uiText"
+      ],
+      "scale": 1.0,
+      "tags": [
+        "tile",
+        "building",
+        "group:yellow"
+      ],
+      "triangles": 168,
+      "vertices": 112
+    },
+    {
+      "animated": false,
+      "bounds": [
+        2.12,
+        2.12,
+        1.25
+      ],
+      "bytes": 10896,
+      "glbPath": "public/models/city.lost_and_found.glb",
+      "key": "city.lost_and_found",
+      "materials": [
+        "accentSecondary",
+        "groupBlue",
+        "ringBase",
+        "ringEdge",
+        "uiPanel"
+      ],
+      "scale": 1.0,
+      "tags": [
+        "tile",
+        "building",
+        "group:blue"
+      ],
+      "triangles": 96,
+      "vertices": 64
+    },
+    {
+      "animated": false,
+      "bounds": [
+        2.12,
+        2.12,
+        0.95
+      ],
+      "bytes": 10464,
+      "glbPath": "public/models/city.underpass.glb",
+      "key": "city.underpass",
+      "materials": [
+        "ringBase",
+        "ringEdge",
+        "road",
+        "uiShadow"
+      ],
+      "scale": 1.0,
+      "tags": [
+        "tile",
+        "warp"
+      ],
+      "triangles": 96,
+      "vertices": 64
+    },
+    {
+      "animated": false,
+      "bounds": [
+        2.12,
+        2.12,
+        1.56
+      ],
+      "bytes": 28984,
+      "glbPath": "public/models/city.event_plaza.glb",
+      "key": "city.event_plaza",
+      "materials": [
+        "accentCool",
+        "accentPrimary",
+        "ringBase",
+        "ringEdge",
+        "uiPanel"
+      ],
+      "scale": 1.0,
+      "tags": [
+        "tile",
+        "landmark",
+        "event"
+      ],
+      "triangles": 340,
+      "vertices": 186
+    },
+    {
+      "animated": false,
+      "bounds": [
+        2.12,
+        2.12,
+        1.65
+      ],
+      "bytes": 27036,
+      "glbPath": "public/models/city.gacha_gate.glb",
+      "key": "city.gacha_gate",
+      "materials": [
+        "accentCool",
+        "accentPrimary",
+        "accentSecondary",
+        "ringBase",
+        "ringEdge"
+      ],
+      "scale": 1.0,
+      "tags": [
+        "tile",
+        "warp",
+        "landmark"
+      ],
+      "triangles": 308,
+      "vertices": 170
+    },
+    {
+      "animated": false,
+      "bounds": [
+        2.12,
+        2.12,
+        1.65
+      ],
+      "bytes": 16400,
+      "glbPath": "public/models/city.minigame_park.glb",
+      "key": "city.minigame_park",
+      "materials": [
+        "accentCool",
+        "accentPrimary",
+        "accentSecondary",
+        "ringBase",
+        "ringEdge",
+        "uiText"
+      ],
+      "scale": 1.0,
+      "tags": [
+        "tile",
+        "landmark",
+        "minigame"
+      ],
+      "triangles": 172,
+      "vertices": 104
+    },
+    {
+      "animated": false,
+      "bounds": [
+        2.12,
+        2.12,
+        1.25
+      ],
+      "bytes": 10452,
+      "glbPath": "public/models/city.escalator.glb",
+      "key": "city.escalator",
+      "materials": [
+        "accentCool",
+        "ringBase",
+        "ringEdge",
+        "uiShadow"
+      ],
+      "scale": 1.0,
+      "tags": [
+        "tile",
+        "warp"
+      ],
+      "triangles": 96,
+      "vertices": 64
+    },
+    {
+      "animated": false,
+      "bounds": [
+        2.12,
+        2.12,
+        2.32
+      ],
+      "bytes": 10404,
+      "glbPath": "public/models/city.express_lift.glb",
+      "key": "city.express_lift",
+      "materials": [
+        "accentCool",
+        "ringBase",
+        "ringEdge",
+        "uiPanel"
+      ],
+      "scale": 1.0,
+      "tags": [
+        "tile",
+        "warp"
+      ],
+      "triangles": 96,
+      "vertices": 64
+    },
+    {
+      "animated": false,
+      "bounds": [
+        2.12,
+        2.12,
+        1.3
+      ],
+      "bytes": 12468,
+      "glbPath": "public/models/city.house_1.glb",
+      "key": "city.house_1",
+      "materials": [
+        "accentPrimary",
+        "groupBlue",
+        "ringBase",
+        "ringEdge",
+        "uiHighlight"
+      ],
+      "scale": 1.0,
+      "tags": [
+        "tile",
+        "house",
+        "level:1"
+      ],
+      "triangles": 120,
+      "vertices": 76
+    },
+    {
+      "animated": false,
+      "bounds": [
+        2.12,
+        2.12,
+        1.64
+      ],
+      "bytes": 14280,
+      "glbPath": "public/models/city.house_2.glb",
+      "key": "city.house_2",
+      "materials": [
+        "accentPrimary",
+        "groupYellow",
+        "ringBase",
+        "ringEdge",
+        "uiHighlight"
+      ],
+      "scale": 1.0,
+      "tags": [
+        "tile",
+        "house",
+        "level:2"
+      ],
+      "triangles": 144,
+      "vertices": 92
+    },
+    {
+      "animated": false,
+      "bounds": [
+        2.12,
+        2.12,
+        1.98
+      ],
+      "bytes": 15892,
+      "glbPath": "public/models/city.house_3.glb",
+      "key": "city.house_3",
+      "materials": [
+        "accentPrimary",
+        "groupRed",
+        "ringBase",
+        "ringEdge",
+        "uiHighlight"
+      ],
+      "scale": 1.0,
+      "tags": [
+        "tile",
+        "house",
+        "level:3"
+      ],
+      "triangles": 168,
+      "vertices": 108
+    },
+    {
+      "animated": false,
+      "bounds": [
+        2.12,
+        2.12,
+        2.76
+      ],
+      "bytes": 18464,
+      "glbPath": "public/models/city.house_4.glb",
+      "key": "city.house_4",
+      "materials": [
+        "accentPrimary",
+        "accentSecondary",
+        "groupGold",
+        "ringBase",
+        "ringEdge",
+        "uiHighlight"
+      ],
+      "scale": 1.0,
+      "tags": [
+        "tile",
+        "house",
+        "level:4"
+      ],
+      "triangles": 190,
+      "vertices": 121
+    },
+    {
+      "animated": false,
+      "bounds": [
+        0.7,
+        0.765,
+        0.74
+      ],
+      "bytes": 13244,
+      "glbPath": "public/models/city.dice.glb",
+      "key": "city.dice",
+      "materials": [
+        "uiPanel",
+        "uiText"
+      ],
+      "scale": 1.0,
+      "tags": [
+        "prop",
+        "dice"
+      ],
+      "triangles": 180,
+      "vertices": 104
+    },
+    {
+      "animated": false,
+      "bounds": [
+        1.08,
+        1.08,
+        1.19
+      ],
+      "bytes": 29588,
+      "glbPath": "public/models/char_farmer.glb",
+      "key": "char_farmer",
+      "materials": [
+        "accentSecondary",
+        "player_farmer",
+        "uiPanel"
+      ],
+      "scale": 1.0,
+      "tags": [
+        "character",
+        "archetype:farmer"
+      ],
+      "triangles": 382,
+      "vertices": 203
+    },
+    {
+      "animated": false,
+      "bounds": [
+        0.8,
+        0.6,
+        1.02
+      ],
+      "bytes": 56984,
+      "glbPath": "public/models/char_girl.glb",
+      "key": "char_girl",
+      "materials": [
+        "player_girl",
+        "uiPanel"
+      ],
+      "scale": 1.0,
+      "tags": [
+        "character",
+        "archetype:girl"
+      ],
+      "triangles": 748,
+      "vertices": 386
+    },
+    {
+      "animated": false,
+      "bounds": [
+        1.01,
+        0.76,
+        1.48
+      ],
+      "bytes": 44196,
+      "glbPath": "public/models/char_madame.glb",
+      "key": "char_madame",
+      "materials": [
+        "accentSecondary",
+        "player_madame",
+        "uiPanel"
+      ],
+      "scale": 1.0,
+      "tags": [
+        "character",
+        "archetype:madame"
+      ],
+      "triangles": 576,
+      "vertices": 300
+    },
+    {
+      "animated": false,
+      "bounds": [
+        0.78,
+        0.6,
+        0.97
+      ],
+      "bytes": 28788,
+      "glbPath": "public/models/char_ninja.glb",
+      "key": "char_ninja",
+      "materials": [
+        "accentPrimary",
+        "player_ninja",
+        "uiText"
+      ],
+      "scale": 1.0,
+      "tags": [
+        "character",
+        "archetype:ninja"
+      ],
+      "triangles": 372,
+      "vertices": 198
+    },
+    {
+      "animated": false,
+      "bytes": 36786,
+      "key": "portrait_farmer",
+      "pngPath": "public/models/portrait_farmer.png",
+      "scale": 1.0,
+      "tags": [
+        "portrait",
+        "archetype:farmer"
+      ]
+    },
+    {
+      "animated": false,
+      "bytes": 31697,
+      "key": "portrait_girl",
+      "pngPath": "public/models/portrait_girl.png",
+      "scale": 1.0,
+      "tags": [
+        "portrait",
+        "archetype:girl"
+      ]
+    },
+    {
+      "animated": false,
+      "bytes": 38521,
+      "key": "portrait_madame",
+      "pngPath": "public/models/portrait_madame.png",
+      "scale": 1.0,
+      "tags": [
+        "portrait",
+        "archetype:madame"
+      ]
+    },
+    {
+      "animated": false,
+      "bytes": 30336,
+      "key": "portrait_ninja",
+      "pngPath": "public/models/portrait_ninja.png",
+      "scale": 1.0,
+      "tags": [
+        "portrait",
+        "archetype:ninja"
+      ]
+    }
+  ],
+  "blender": "5.2.2 LTS",
+  "seed": 20260925,
+  "version": 1
+}
