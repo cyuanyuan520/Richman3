@@ -2,7 +2,7 @@
   "name": "richman3",
   "private": true,
   "version": "0.1.0",
-  "description": "Q版 3D 大富翁桌面网页游戏 (Vite + React + TypeScript + React Three Fiber)",
+  "description": "Q\u7248 3D \u5927\u5bcc\u7fc1\u684c\u9762\u7f51\u9875\u6e38\u620f (Vite + React + TypeScript + React Three Fiber)",
   "type": "module",
   "packageManager": "pnpm@12.4.1",
   "engines": {
@@ -12,7 +12,7 @@
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsc --noEmit -p tsconfig.app.json && tsc --noEmit -p tsconfig.node.json",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "check:copyright": "node scripts/check-copyright.mjs",
@@ -22,7 +22,9 @@
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "build:models": "node scripts/build-models.mjs",
-    "check:assets": "node scripts/check-assets.mjs"
+    "check:assets": "node scripts/check-assets.mjs",
+    "test:e2e": "playwright test",
+    "test:e2e:install": "playwright install --with-deps chromium"
   },
   "dependencies": {
     "@react-three/drei": "^10.7.8",
@@ -36,6 +38,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
+    "@playwright/test": "^1.63.0",
     "@testing-library/jest-dom": "^7.0.1",
     "@testing-library/react": "^16.3.3",
     "@testing-library/user-event": "^14.6.7",

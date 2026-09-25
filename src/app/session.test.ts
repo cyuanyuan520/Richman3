@@ -1,5 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 
+import type { ClientIntentMessage as ClientIntent } from '@/engine/contracts/net';
+
 import { CITY_METRO, CONTENT_PACK } from '@/content';
 import { DEFAULT_ROOM_CONFIG } from '@/engine/contracts/config';
 import { hashState } from '@/engine/hash';
@@ -70,7 +72,9 @@ describe('game table', () => {
     const listener = vi.fn();
     table.subscribe(listener);
     const before = table.getSnapshot().state.rngCursor;
-    table.dispatch({ type: 'INTENT_ROLL', v: 1, seq: 1, from: 'p1', payload: {} });
+    // The UI emits a bare intent; the table is responsible for stamping the
+    // envelope with its own seat, exactly as the host does.
+    table.dispatch({ type: 'INTENT_ROLL' } as ClientIntent);
     const after = table.getSnapshot();
     expect(listener).toHaveBeenCalled();
     expect(after.state.rngCursor).toBeGreaterThan(before);
@@ -82,7 +86,9 @@ describe('game table', () => {
   it('surfaces a refusal without advancing the game', () => {
     const table = createGameTable(tableOptions());
     const before = hashState(table.getSnapshot().state);
-    table.dispatch({ type: 'INTENT_ROLL', v: 1, seq: 1, from: 'ai1', payload: {} });
+    // Ending a turn is refused while the roll is still pending, so this
+    // exercises the refusal path without relying on a spoofed sender.
+    table.dispatch({ type: 'INTENT_END_TURN' } as ClientIntent);
     expect(hashState(table.getSnapshot().state)).toBe(before);
     table.dispose();
   });

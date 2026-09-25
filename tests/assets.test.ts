@@ -17,6 +17,8 @@ import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
 
+import { AssetManifestSchema, isMeshAsset, type PortraitAsset } from '@/ui/assets/manifest';
+
 const REPO_ROOT = path.resolve(import.meta.dirname, '..');
 
 const BuildConfigSchema = z.object({
@@ -166,5 +168,36 @@ describe('committed binaries', () => {
       const bytes = readFileSync(asset.pngPath);
       expect(bytes.subarray(0, 8).equals(signature), asset.key).toBe(true);
     }
+  });
+});
+
+// The UI reads the same file with its own schema. Keeping them independent is
+// deliberate (the UI must not import test code), but they must agree: an E2E run
+// once failed because this module still assumed every entry carried a glbPath.
+describe('UI manifest schema', () => {
+  it('accepts the committed manifest', () => {
+    const raw: unknown = JSON.parse(
+      readFileSync(path.join(REPO_ROOT, 'public/models/assets.manifest.json'), 'utf8'),
+    );
+    const parsed = AssetManifestSchema.safeParse(raw);
+    const issues = parsed.success
+      ? []
+      : parsed.error.issues.map((i) => `${i.path.join('.')}: ${i.message}`);
+    expect(issues).toEqual([]);
+  });
+
+  it('classifies meshes and portraits separately', () => {
+    const raw: unknown = JSON.parse(
+      readFileSync(path.join(REPO_ROOT, 'public/models/assets.manifest.json'), 'utf8'),
+    );
+    const manifest = AssetManifestSchema.parse(raw);
+    const meshes = manifest.assets.filter(isMeshAsset);
+    const portraits = manifest.assets.filter(
+      (asset): asset is PortraitAsset => !isMeshAsset(asset),
+    );
+    expect(meshes.length).toBe(40);
+    expect(portraits.length).toBe(4);
+    expect(meshes.every((asset) => asset.glbPath.endsWith('.glb'))).toBe(true);
+    expect(portraits.every((asset) => asset.pngPath.endsWith('.png'))).toBe(true);
   });
 });

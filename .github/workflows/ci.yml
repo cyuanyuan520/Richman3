@@ -48,5 +48,30 @@ jobs:
       - name: Production build
         run: pnpm build
 
-# NOTE: the Blender asset job is added in phase P5 (headless Blender 5.2.2 LTS,
-# asset idempotency + budget checks).
+  # NOTE: the Blender asset job is added in phase P5 (headless Blender 5.2.2 LTS,
+  # asset idempotency + budget checks).
+
+  e2e:
+    name: End-to-end (Chromium)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Install browsers
+        run: pnpm exec playwright install --with-deps chromium
+      - name: Run the smoke suite
+        run: pnpm test:e2e
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 7

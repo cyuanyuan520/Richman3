@@ -35,6 +35,11 @@ export interface SeatSpec {
 }
 
 export interface CreateTableOptions {
+  /**
+   * Seat that the caller acts as. Defaults to the first human seat, so a
+   * solo table stamps intents for its single player without extra wiring.
+   */
+  localPlayerId?: string;
   readonly content: TableContent;
   readonly roomConfig: RoomConfig;
   readonly seats: readonly SeatSpec[];
@@ -108,6 +113,9 @@ export function createGameTable(options: CreateTableOptions): GameTable {
     players: options.seats,
   });
 
+  const localPlayerId =
+    options.localPlayerId ?? options.seats.find((seat) => !seat.isAI)?.id ?? null;
+
   let lastRoll: number | null = null;
   const listeners = new Set<() => void>();
   let cancelScheduled: (() => void) | null = null;
@@ -166,8 +174,10 @@ export function createGameTable(options: CreateTableOptions): GameTable {
       return () => listeners.delete(listener);
     },
     dispatch(intent) {
-      if (disposed) return;
-      const result = applyIntent(session, intent);
+      if (disposed || localPlayerId === null) return;
+      // The UI emits bare intents; the envelope fields are an engine contract,
+      // so the table stamps them exactly as the host does for its own seat.
+      const result = applyIntent(session, { ...intent, v: 1, seq: 0, from: localPlayerId });
       session = result.session;
       if (result.rejected !== null) {
         snapshot = { ...snapshot, state: session.state, events: result.events, lastRoll };

@@ -17,7 +17,7 @@ import {
   type HostTable,
 } from '@/app/netTable';
 import { useTable } from '@/app/useTable';
-import { loadManifest, webPath } from '@/ui/assets/manifest';
+import { assetUrl, isMeshAsset, loadManifest } from '@/ui/assets/manifest';
 import {
   DURATION_NOTE,
   MenuScreen,
@@ -101,8 +101,8 @@ export default function App() {
         if (cancelled) return;
         const urls: Record<string, string> = {};
         for (const asset of manifest.assets) {
-          if (asset.key.startsWith('portrait_')) continue;
-          urls[asset.key] = webPath(asset.glbPath);
+          if (!isMeshAsset(asset)) continue;
+          urls[asset.key] = assetUrl(asset);
         }
         setManifestUrls(urls);
       })

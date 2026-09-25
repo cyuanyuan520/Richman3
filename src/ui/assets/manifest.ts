@@ -7,7 +7,14 @@ import { z } from 'zod';
  * being duplicated in the JSON.
  */
 
-const AssetEntrySchema = z.object({
+/**
+ * Meshes and portraits are different shapes: a mesh carries geometry stats and
+ * a `glbPath`, a portrait carries only a `pngPath`. Modelling them as a union
+ * rather than one permissive object is what makes the checker honest, and the
+ * E2E run is what caught it when this module assumed every entry had a
+ * `glbPath`.
+ */
+const MeshEntrySchema = z.object({
   key: z.string().min(1),
   glbPath: z.string().min(1),
   bytes: z.number().int().nonnegative(),
@@ -21,6 +28,18 @@ const AssetEntrySchema = z.object({
   bounds: z.tuple([z.number(), z.number(), z.number()]),
 });
 
+const PortraitEntrySchema = z.object({
+  key: z.string().min(1),
+  pngPath: z.string().min(1),
+  bytes: z.number().int().nonnegative(),
+  scale: z.number().positive(),
+  tags: z.array(z.string()),
+  animated: z.boolean(),
+  animations: z.array(z.string()),
+});
+
+const AssetEntrySchema = z.union([MeshEntrySchema, PortraitEntrySchema]);
+
 export const AssetManifestSchema = z.object({
   version: z.literal(1),
   seed: z.number().int(),
@@ -28,8 +47,19 @@ export const AssetManifestSchema = z.object({
   assets: z.array(AssetEntrySchema),
 });
 
+export type MeshAsset = z.infer<typeof MeshEntrySchema>;
+export type PortraitAsset = z.infer<typeof PortraitEntrySchema>;
 export type AssetEntry = z.infer<typeof AssetEntrySchema>;
 export type AssetManifest = z.infer<typeof AssetManifestSchema>;
+
+export function isMeshAsset(asset: AssetEntry): asset is MeshAsset {
+  return 'glbPath' in asset;
+}
+
+/** The fetchable URL for whichever file an entry points at. */
+export function assetUrl(asset: AssetEntry): string {
+  return webPath(isMeshAsset(asset) ? asset.glbPath : asset.pngPath);
+}
 
 export const MANIFEST_URL = '/models/assets.manifest.json';
 

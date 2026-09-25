@@ -1,4 +1,5 @@
-import { useMemo, useState } from 'react';
+import { Suspense, useMemo, useState } from 'react';
+import { Canvas } from '@react-three/fiber';
 
 import type { Character } from '@/engine/contracts/content';
 import type { ClientIntent } from '@/engine/contracts/net';
@@ -7,6 +8,7 @@ import type { ThemeTokens } from '@/engine/contracts/config';
 import type { MapDefinition } from '@/engine/contracts/content';
 import type { TableSnapshot } from '@/app/session';
 import { Board } from './board/Board';
+import { cameraPose } from './board/geometry';
 
 export interface GameScreenProps {
   map: MapDefinition;
@@ -349,15 +351,25 @@ export function GameScreen({
 
   return (
     <div className="game-root">
-      <Board
-        map={map}
-        state={state}
-        theme={theme}
-        modelUrls={modelUrls}
+      <Canvas
         shadows={shadows}
-        shadowMapSize={shadowMapSize}
-        lastRoll={lastRoll}
-      />
+        dpr={[1, 2]}
+        camera={cameraPose()}
+        gl={{ antialias: true }}
+        style={{ position: 'absolute', inset: 0 }}
+      >
+        <Suspense fallback={null}>
+          <Board
+            map={map}
+            state={state}
+            theme={theme}
+            modelUrls={modelUrls}
+            shadows={shadows}
+            shadowMapSize={shadowMapSize}
+            lastRoll={lastRoll}
+          />
+        </Suspense>
+      </Canvas>
 
       <header className="game-top">
         <div className="turn-pill">
