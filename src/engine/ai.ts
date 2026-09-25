@@ -56,11 +56,11 @@ export function decide(session: GameSession, playerId: string): AiIntent | null 
   const isActive = state.players[state.activePlayerIndex]?.id === playerId;
 
   // A bankrupt active seat still has to hand the turn over, otherwise the
-  // table deadlocks: every other intent is refused for it.
+  // table deadlocks: every other intent is refused for it. The reducer accepts
+  // `INTENT_END_TURN` from a bankrupt seat in any phase, so the AI must offer it
+  // regardless of how the turn was interrupted (roll, pending choice, mini-game).
   if (player.bankrupt) {
-    return isActive && state.phase === 'AWAIT_END_TURN'
-      ? { type: 'INTENT_END_TURN', payload: {} }
-      : null;
+    return isActive ? { type: 'INTENT_END_TURN', payload: {} } : null;
   }
 
   switch (state.phase) {

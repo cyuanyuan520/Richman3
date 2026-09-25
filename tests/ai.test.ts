@@ -74,13 +74,23 @@ describe('AI decision making', () => {
     expect(found).toBe(true);
   });
 
-  it('never returns a decision for a bankrupt player', () => {
+  it('hands the turn over when the active seat is bankrupt', () => {
     const session = patchSession(boot(), (state) => ({
       ...state,
       players: state.players.map((player) =>
         player.id === 'p1' ? { ...player, bankrupt: true } : player,
       ),
     }));
-    expect(decide(session, 'p1')).toBeNull();
+    expect(decide(session, 'p1')).toEqual({ type: 'INTENT_END_TURN', payload: {} });
+  });
+
+  it('never returns a decision for a bankrupt player who is not active', () => {
+    const session = patchSession(boot(), (state) => ({
+      ...state,
+      players: state.players.map((player) =>
+        player.id === 'p2' ? { ...player, bankrupt: true } : player,
+      ),
+    }));
+    expect(decide(session, 'p2')).toBeNull();
   });
 });

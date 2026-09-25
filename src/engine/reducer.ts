@@ -664,9 +664,13 @@ function resolveRingLanding(
     }
     next = settleInsolvency({ ...session, state: next }, playerId, null, emitter);
   }
-  // `ON_LAND` only fires once the landing has fully resolved; a pending
-  // purchase or a running mini-game must not be displaced by skill movement.
-  if (next.phase === 'AWAIT_END_TURN') {
+  // `ON_LAND` fires only for a landing that settles without a pending choice
+  // (no purchase/upgrade decision, no running mini-game, no centre exit) and
+  // only for the final tile of a chain. A `WARP` tile defers to the destination
+  // via `followWarp`, which re-enters this function with a higher depth; firing
+  // here as well would double every ON_LAND reward. Content authors who need an
+  // effect on *every* tile a piece stops on should use `ON_ROLL` instead.
+  if (tile.type !== 'WARP' && next.phase === 'AWAIT_END_TURN') {
     next = applyTriggerEffects(session, next, playerId, 'ON_LAND', emitter);
   }
   return ensureCenterExit(session, next, playerId, entryTile, emitter);
@@ -881,6 +885,11 @@ function exitCenter(
 ): GameState {
   const player = findPlayer(state, playerId);
   if (player === undefined) return state;
+  // Only a player who is actually standing in the centre may be returned; the
+  // warp chain can reach here after the piece has already been moved back to
+  // the ring (e.g. a chaos WARP targeting a ring tile), and teleporting them
+  // again would silently discard the destination they just received.
+  if (player.position.zone !== 'center') return state;
   if (entryTileId !== undefined) {
     const index = session.geometry.ringIndexById[entryTileId];
     if (index !== undefined) {
@@ -1047,13 +1056,19 @@ function netWorthLeaderId(session: GameSession): string | null {
 
 function advanceTurn(session: GameSession, emitter: Emitter): GameState {
   let state = session.state;
-  let guard = 0;
+  let visitsThisRound = 0;
+  let skipsThisRound = 0;
   for (;;) {
-    guard += 1;
-    if (guard > 64) break;
     const size = state.players.length;
     const nextIndex = (state.activePlayerIndex + 1) % size;
     if (nextIndex === 0) {
+      // A full round that neither started a turn nor consumed a skip means no
+      // seat can ever play again (all bankrupt). Bounding by rounds rather than
+      // a fixed iteration count keeps legitimately long skip chains (many
+      // players each queuing several SKIP_TURN effects) playable.
+      if (visitsThisRound >= size && skipsThisRound === 0) break;
+      visitsThisRound = 0;
+      skipsThisRound = 0;
       state = { ...state, turn: state.turn + 1 };
       emitter.turn = state.turn;
       if (
@@ -1065,9 +1080,11 @@ function advanceTurn(session: GameSession, emitter: Emitter): GameState {
     }
     const candidate = state.players[nextIndex];
     if (candidate === undefined) break;
+    visitsThisRound += 1;
     state = { ...state, activePlayerIndex: nextIndex };
     if (candidate.bankrupt) continue;
     if (candidate.skipTurns > 0) {
+      skipsThisRound += 1;
       state = replacePlayerState(state, { ...candidate, skipTurns: candidate.skipTurns - 1 });
       emitter.push('TURN_SKIPPED', candidate.id, { remaining: candidate.skipTurns - 1 });
       continue;
@@ -1081,6 +1098,7 @@ function advanceTurn(session: GameSession, emitter: Emitter): GameState {
     if (started === undefined) break;
     if (started.bankrupt) continue;
     if (started.skipTurns > 0) {
+      skipsThisRound += 1;
       state = replacePlayerState(state, { ...started, skipTurns: started.skipTurns - 1 });
       emitter.push('TURN_SKIPPED', started.id, { remaining: started.skipTurns - 1 });
       continue;
@@ -1088,8 +1106,7 @@ function advanceTurn(session: GameSession, emitter: Emitter): GameState {
     emitter.push('TURN_START', started.id, { turn: state.turn });
     return { ...state, phase: 'AWAIT_ROLL', pendingChoice: null };
   }
-  // Exhausting the guard means every seat is bankrupt or skipping, which
-  // `checkVictory` normally prevents. Terminate deterministically anyway.
+  // Every seat is bankrupt; resolve deterministically by net worth.
   return finishGame({ ...session, state }, emitter, netWorthLeaderId({ ...session, state }));
 }
 
@@ -1497,6 +1514,12 @@ function applyUseSkill(
   const state = session.state;
   if (state.phase === 'GAME_OVER' || state.phase === 'SETUP')
     return reject(session, 'phase-not-allowed');
+  // Active skills are a turn action: without this guard any seat could buff
+  // itself (and even trigger victory) during another player's turn.
+  if (state.phase !== 'AWAIT_ROLL' && state.phase !== 'AWAIT_END_TURN')
+    return reject(session, 'phase-not-allowed');
+  const active = activePlayer(state);
+  if (active === undefined || active.id !== intent.from) return reject(session, 'not-your-turn');
   const player = findPlayer(state, intent.from);
   if (player === undefined) return reject(session, 'unknown-player');
   const skill = session.registry.bySkillId.get(intent.payload.skillId);
