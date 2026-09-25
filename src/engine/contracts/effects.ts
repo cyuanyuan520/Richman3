@@ -40,7 +40,11 @@ export const SwapPosEffectSchema = z.object({
 
 export const SkipTurnEffectSchema = z.object({
   kind: z.literal('SKIP_TURN'),
-  /** Bounded so `advanceTurn` always terminates within its guard. */
+  /**
+   * Bounded per effect. Accumulated skips are consumed one per turn in
+   * `advanceTurn`; a skip queued by a player's own `ON_TURN_START` skill is
+   * deferred to their next turn so the trigger cannot skip itself forever.
+   */
   value: z.number().int().min(1).max(3),
 });
 

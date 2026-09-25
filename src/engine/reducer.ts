@@ -1097,12 +1097,11 @@ function advanceTurn(session: GameSession, emitter: Emitter): GameState {
     const started = state.players[state.activePlayerIndex];
     if (started === undefined) break;
     if (started.bankrupt) continue;
-    if (started.skipTurns > 0) {
-      skipsThisRound += 1;
-      state = replacePlayerState(state, { ...started, skipTurns: started.skipTurns - 1 });
-      emitter.push('TURN_SKIPPED', started.id, { remaining: started.skipTurns - 1 });
-      continue;
-    }
+    // A skip granted by this player's own ON_TURN_START trigger is deliberately
+    // NOT consumed here: the trigger can queue one every turn, and consuming it
+    // in the same iteration would keep `skipsThisRound` non-zero forever and
+    // hang the host. It applies on this player's next turn via the pre-trigger
+    // branch above (which also consumes skips queued by other players).
     emitter.push('TURN_START', started.id, { turn: state.turn });
     return { ...state, phase: 'AWAIT_ROLL', pendingChoice: null };
   }
