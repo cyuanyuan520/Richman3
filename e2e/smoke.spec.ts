@@ -8,6 +8,27 @@ import { expect, test } from '@playwright/test';
  * unit suites, and duplicating them here would only make the run slower.
  */
 
+test.beforeEach(async ({ page }) => {
+  const failures: string[] = [];
+  /**
+   * An uncaught exception used to leave a rendered shell behind, so a screen
+   * that quietly threw on mount still looked present to every assertion here.
+   * The host and client tables did exactly that and the suite stayed green.
+   */
+  page.on('pageerror', (error) => failures.push(error.message));
+  page.on('console', (message) => {
+    if (message.type() === 'error') failures.push(`console: ${message.text()}`);
+  });
+  await page.goto('/');
+  // Exposed on the page object so each test can assert it before it finishes.
+  (page as unknown as { failures: string[] }).failures = failures;
+});
+
+test.afterEach(({ page }) => {
+  const failures = (page as unknown as { failures?: string[] }).failures ?? [];
+  expect(failures, `the page reported errors -> ${failures.join(' | ')}`).toEqual([]);
+});
+
 test('menu, rules and back', async ({ page }) => {
   await page.goto('/');
 

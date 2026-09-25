@@ -1,4 +1,4 @@
-import { Suspense, lazy, useCallback, useEffect, useMemo, useState } from 'react';
+import { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { CONTENT_PACK, CITY_METRO, THEME_TOKENS } from '@/content';
 import type { RoomConfig, Settings } from '@/engine/contracts/config';
@@ -7,7 +7,7 @@ import { ClientSession } from '@/net/client';
 import { isValidRoomId } from '@/lib/room-code';
 import { HostSession, MAX_PLAYERS } from '@/net/host';
 import { makeRoomCredentials } from '@/net/credentials';
-import { createAudioDirector, type AudioDirector } from '@/audio';
+import { createAudioDirector, type AudioDirector, type SfxKind } from '@/audio';
 import { createSettingsStore, qualityPreset, QUALITY_LABELS } from '@/settings';
 
 import { createGameTable, type GameTable } from '@/app/session';
@@ -42,6 +42,33 @@ const GameScreen = lazy(async () => {
 type Route = 'menu' | 'solo' | 'online' | 'lobby' | 'game' | 'settings' | 'rules';
 
 const settingsStore = createSettingsStore();
+
+const SFX_FOR_EVENT: Record<string, SfxKind> = {
+  DICE_ROLLED: 'DICE',
+  PLAYER_MOVED: 'MOVE',
+  PLAYER_WARPED: 'MOVE',
+  PLAYER_TELEPORTED: 'MOVE',
+  POSITIONS_SWAPPED: 'MOVE',
+  PROPERTY_BOUGHT: 'BUY',
+  PROPERTY_UPGRADED: 'BUY',
+  PROPERTY_MORTGAGED: 'CLICK',
+  PROPERTY_REDEEMED: 'CLICK',
+  RENT_DUE: 'PAY',
+  TAX_DUE: 'PAY',
+  MONEY_PAID: 'PAY',
+  SALARY_PAID: 'WIN',
+  BONUS_GRANTED: 'WIN',
+  CHAOS: 'CHAOS',
+  CHAOS_DRAWN: 'CHAOS',
+  PLAYER_JAILED: 'LOSE',
+  SKILL_USED: 'CHAOS',
+  SKILL_TRIGGERED: 'CHAOS',
+  MINIGAME_STARTED: 'MINIGAME',
+  MINIGAME_FORCED: 'MINIGAME',
+  MINIGAME_FINISHED: 'MINIGAME',
+  PLAYER_BANKRUPT: 'LOSE',
+  GAME_OVER: 'WIN',
+};
 
 let director: AudioDirector | null = null;
 function audio(): AudioDirector {
@@ -276,6 +303,30 @@ export default function App() {
     clientSnapshot.state.phase !== 'SETUP'
       ? 'game'
       : route;
+
+  /* The score follows the route: it plays only while a game is on screen. */
+  useEffect(() => {
+    if (effectiveRoute === 'game' || effectiveRoute === 'solo') audio().startBgm();
+    else audio().stopBgm();
+  }, [effectiveRoute]);
+
+  /* Sound the events that have arrived since the last render. The event list is
+     cumulative, so a cursor rather than a diff keeps a re-render silent. */
+  const sounded = useRef(0);
+  const table = solo ?? hostTable ?? clientTable;
+  useEffect(() => {
+    sounded.current = 0;
+  }, [table]);
+  useEffect(() => {
+    const events = snapshot?.events ?? [];
+    if (events.length < sounded.current) sounded.current = 0;
+    const fresh = events.slice(sounded.current);
+    sounded.current = events.length;
+    for (const event of fresh) {
+      const kind = SFX_FOR_EVENT[event.type];
+      if (kind !== undefined) audio().playSfx(kind);
+    }
+  }, [snapshot]);
 
   const exitToMenu = useCallback(() => {
     setSolo(null);
