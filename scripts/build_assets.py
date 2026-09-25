@@ -111,8 +111,9 @@ def box(
     at: tuple[float, float, float] = (0.0, 0.0, 0.0),
     colour: str = 'ringBase',
     turn: float = 0.0,
+    tilt: tuple[float, float] = (0.0, 0.0),
 ) -> dict[str, Any]:
-    return {'kind': 'box', 'size': size, 'at': at, 'colour': colour, 'turn': turn}
+    return {'kind': 'box', 'size': size, 'at': at, 'colour': colour, 'turn': turn, 'tilt': tilt}
 
 
 def cylinder(
@@ -121,6 +122,8 @@ def cylinder(
     at: tuple[float, float, float] = (0.0, 0.0, 0.0),
     colour: str = 'ringBase',
     sides: int = 16,
+    turn: float = 0.0,
+    tilt: tuple[float, float] = (0.0, 0.0),
 ) -> dict[str, Any]:
     return {
         'kind': 'cylinder',
@@ -129,6 +132,8 @@ def cylinder(
         'at': at,
         'colour': colour,
         'sides': sides,
+        'turn': turn,
+        'tilt': tilt,
     }
 
 
@@ -138,16 +143,29 @@ def cone(
     at: tuple[float, float, float] = (0.0, 0.0, 0.0),
     colour: str = 'accentPrimary',
     sides: int = 12,
+    turn: float = 0.0,
+    tilt: tuple[float, float] = (0.0, 0.0),
 ) -> dict[str, Any]:
-    return {'kind': 'cone', 'radius': radius, 'depth': depth, 'at': at, 'colour': colour, 'sides': sides}
+    return {
+        'kind': 'cone',
+        'radius': radius,
+        'depth': depth,
+        'at': at,
+        'colour': colour,
+        'sides': sides,
+        'turn': turn,
+        'tilt': tilt,
+    }
 
 
 def sphere(
     radius: float,
     at: tuple[float, float, float] = (0.0, 0.0, 0.0),
     colour: str = 'accentPrimary',
+    turn: float = 0.0,
+    tilt: tuple[float, float] = (0.0, 0.0),
 ) -> dict[str, Any]:
-    return {'kind': 'sphere', 'radius': radius, 'at': at, 'colour': colour}
+    return {'kind': 'sphere', 'radius': radius, 'at': at, 'colour': colour, 'turn': turn, 'tilt': tilt}
 
 
 def lathe(
@@ -523,37 +541,53 @@ def _pair(build: Any) -> list[dict[str, Any]]:
     return [*build(-1.0), *build(1.0)]
 
 
-def _face(skin: str, *, brow: str = 'hairDark', blush: str | None = None, mouth: bool = True) -> list[dict[str, Any]]:
+def _eye(side: float, iris: str) -> list[dict[str, Any]]:
+    """One eye: a round sclera, an iris, a pupil, one catchlight.
+
+    Every layer is anchored by its frontmost point, and the catchlight is offset
+    by `side` so the two eyes mirror each other instead of both pointing the same
+    way. Big and vertically stretched read as staring, so this stays close to
+    round.
+    """
+    x = side * 0.054
+    return [
+        ellipsoid((0.030, 0.013, 0.030), (x, -0.130, 0.960), 'uiPanel', segments=14, rings=7),
+        ellipsoid((0.019, 0.012, 0.019), (x, -0.133, 0.966), iris, segments=12, rings=6),
+        ellipsoid((0.008, 0.009, 0.009), (x, -0.136, 0.971), DARK, segments=10, rings=5),
+        ellipsoid((0.007, 0.005, 0.007), (x + side * 0.009, -0.139, 0.982), 'uiPanel', segments=8, rings=4),
+    ]
+
+
+def _face(
+    skin: str,
+    *,
+    brow: str = 'hairDark',
+    blush: str | None = None,
+    mouth: bool = True,
+    iris: str = DARK,
+) -> list[dict[str, Any]]:
     parts: list[dict[str, Any]] = []
 
-    def eye(side: float) -> list[dict[str, Any]]:
-        x = side * 0.058
-        return [
-            ellipsoid((0.042, 0.028, 0.048), (x, -0.120, 1.024), 'uiPanel', segments=12, rings=6),
-            ellipsoid((0.025, 0.021, 0.029), (x, -0.132, 1.042), DARK, segments=10, rings=5),
-            ellipsoid((0.009, 0.008, 0.010), (x - 0.009, -0.147, 1.054), 'uiPanel', segments=8, rings=4),
-        ]
-
     def ear(side: float) -> list[dict[str, Any]]:
-        return [ellipsoid((0.018, 0.036, 0.040), (side * 0.138, 0.0, 1.006), skin, segments=10, rings=5)]
+        return [ellipsoid((0.017, 0.032, 0.036), (side * 0.126, -0.002, 0.968), skin, segments=10, rings=5)]
 
-    parts.extend(_pair(eye))
+    parts.extend(_pair(lambda side: _eye(side, iris)))
     parts.extend(_pair(ear))
-    parts.append(ellipsoid((0.018, 0.021, 0.016), (0.0, -0.138, 1.030), skin, segments=10, rings=5))
     if mouth:
-        parts.append(ellipsoid((0.026, 0.010, 0.010), (0.0, -0.134, 0.994), 'lips', segments=10, rings=5))
+        parts.append(ellipsoid((0.020, 0.009, 0.007), (0.0, -0.126, 0.906), 'lips', segments=10, rings=5))
     if blush is not None:
         parts.extend(
             _pair(
                 lambda side: [
-                    ellipsoid((0.020, 0.012, 0.014), (side * 0.100, -0.108, 0.990), blush, segments=10, rings=5)
+                    ellipsoid((0.022, 0.011, 0.012), (side * 0.092, -0.092, 0.912), blush, segments=10, rings=5)
                 ]
             )
         )
+    # Thin, and clear of the hairline.
     parts.extend(
         _pair(
             lambda side: [
-                box((0.060, 0.016, 0.012), (side * 0.058, -0.132, 1.104), brow, turn=side * -0.13)
+                ellipsoid((0.023, 0.009, 0.005), (side * 0.054, -0.129, 1.014), brow, segments=10, rings=5)
             ]
         )
     )
@@ -561,32 +595,64 @@ def _face(skin: str, *, brow: str = 'hairDark', blush: str | None = None, mouth:
 
 
 def _legs(skin: str, upper: str, lower: str, shoe: str, *, boot: str | None = None) -> list[dict[str, Any]]:
-    if boot is None:
-        return _pair(
-            lambda side: [
-                ellipsoid((0.060, 0.084, 0.034), (side * 0.070, -0.020, 0.0), shoe, segments=14, rings=8),
-                frustum(0.040, 0.047, 0.246, (side * 0.070, 0.0, 0.044), lower, sides=12),
-                frustum(0.050, 0.061, 0.232, (side * 0.070, 0.0, 0.264), upper, sides=12),
-            ]
-        )
-    return _pair(
-        lambda side: [
-            ellipsoid((0.064, 0.090, 0.036), (side * 0.070, -0.022, 0.0), shoe, segments=14, rings=8),
-            frustum(0.040, 0.047, 0.246, (side * 0.070, 0.0, 0.044), lower, sides=12),
-            frustum(0.050, 0.061, 0.232, (side * 0.070, 0.0, 0.264), upper, sides=12),
-            frustum(0.070, 0.058, 0.070, (side * 0.070, 0.0, 0.070), boot, sides=12),
+    """Legs with a ball at every joint.
+
+    Segments meet at an angle and overlap by a few millimetres, so without a
+    joint mass there is a notch at the knee and a hard rim where the ankle enters
+    the shoe. Radii grow up the leg, which stops the foot from looking like it
+    snapped onto a stick.
+    """
+
+    def leg(side: float) -> list[dict[str, Any]]:
+        x = side * 0.072
+        return [
+            ellipsoid((0.062, 0.086, 0.032), (x, -0.022, 0.0), shoe, segments=14, rings=8),
+            ellipsoid((0.047, 0.047, 0.044), (x, 0.0, 0.024), lower, segments=12, rings=7),
+            frustum(0.043, 0.051, 0.252, (x, 0.0, 0.040), lower, sides=14),
+            ellipsoid((0.056, 0.056, 0.052), (x, 0.0, 0.248), lower, segments=12, rings=7),
+            frustum(0.054, 0.068, 0.238, (x, 0.0, 0.270), upper, sides=14),
+            ellipsoid((0.068, 0.064, 0.058), (x, 0.0, 0.464), upper, segments=12, rings=7),
+            *([frustum(0.066, 0.056, 0.062, (x, 0.0, 0.072), boot, sides=12)] if boot else []),
         ]
-    )
+
+    return _pair(leg)
+
+
+def _neck(skin: str) -> list[dict[str, Any]]:
+    """A neck that starts inside the shoulders.
+
+    It used to begin at z 0.850 while the shoulder mass topped out at 0.824,
+    which left a hole at the throat that the board camera could see straight
+    through.
+    """
+    return [cylinder(0.046, 0.104, (0.0, 0.0, 0.788), skin, 14)]
+
+
+def _chest(shirt: str) -> list[dict[str, Any]]:
+    """Waist and ribcage.
+
+    The torso used to be a frustum whose widest ring was its top, with a smaller
+    ellipsoid perched above it, which is why every character read as a bucket.
+    The ribcage is now the widest part, so the arms have a shoulder to hang
+    from instead of dropping off the side of a barrel.
+    """
+    return [
+        frustum(0.128, 0.112, 0.100, (0.0, 0.0, 0.572), shirt, sides=18),
+        ellipsoid((0.178, 0.112, 0.104), (0.0, 0.0, 0.656), shirt, segments=18, rings=9),
+    ]
 
 
 def _torso(skin: str, shirt: str, hips: str) -> list[dict[str, Any]]:
     return [
-        frustum(0.138, 0.128, 0.110, (0.0, 0.0, 0.480), hips, sides=14),
-        frustum(0.126, 0.150, 0.155, (0.0, 0.0, 0.582), shirt, sides=14),
-        ellipsoid((0.160, 0.100, 0.056), (0.0, 0.0, 0.712), shirt, segments=16, rings=8),
-        cylinder(0.050, 0.080, (0.0, 0.0, 0.850), skin, 12),
-        ellipsoid((0.148, 0.158, 0.155), (0.0, 0.0, 0.885), skin, segments=18, rings=10),
+        frustum(0.146, 0.132, 0.116, (0.0, 0.0, 0.470), hips, sides=18),
+        *_chest(shirt),
+        *_neck(skin),
+        ellipsoid((0.132, 0.142, 0.128), (0.0, 0.0, 0.885), skin, segments=18, rings=10),
     ]
+
+
+def _head(skin: str) -> list[dict[str, Any]]:
+    return [ellipsoid((0.132, 0.142, 0.128), (0.0, 0.0, 0.885), skin, segments=18, rings=10)]
 
 
 def _arms(
@@ -598,24 +664,52 @@ def _arms(
     forward: float = 0.08,
     cuff: str | None = None,
 ) -> list[dict[str, Any]]:
-    """Hanging arms: an upper arm angled out, a forearm angled less, a hand."""
+    """Hanging arms: a shoulder cap, an upper arm, a forearm, a mitten hand.
+
+    The elbow and the shoulder get their own masses because the segments are
+    hinged, and the hand is hung from the forearm's own far end rather than from
+    a hard-coded offset, which is what used to leave the wrist floating.
+    """
 
     def arm(side: float) -> list[dict[str, Any]]:
-        shoulder = (side * 0.130, 0.0, 0.775)
+        shoulder = (side * 0.140, 0.0, 0.775)
         upper_tilt = (forward * -1.0, -side * spread)
-        upper = 0.160
+        upper = 0.170
         elbow = joint(shoulder, -upper, 0.0, upper_tilt)
         fore_tilt = (forward * -1.6, -side * spread * 0.30)
+        fore = 0.165
+        wrist = joint(elbow, -fore, 0.0, fore_tilt)
         return [
-            ellipsoid((0.066, 0.066, 0.062), (side * 0.124, 0.0, 0.712), sleeve, segments=12, rings=7),
-            capsule(0.043, upper, shoulder, sleeve, sides=10, down=True, tilt=upper_tilt),
-            capsule(0.038, 0.150, elbow, forearm or sleeve, sides=10, down=True, tilt=fore_tilt),
-            ellipsoid((0.046, 0.040, 0.050), (elbow[0] + side * 0.012, elbow[1] - 0.012, elbow[2] - 0.170), hand,
-                      segments=12, rings=6),
+            # Deltoid: a distinct cap is what tells the eye where the arm starts.
+            ellipsoid((0.058, 0.054, 0.052), (side * 0.136, -0.004, 0.758), sleeve, segments=14, rings=7),
+            capsule(0.037, upper, shoulder, sleeve, sides=12, down=True, tilt=upper_tilt),
+            ellipsoid(
+                (0.039, 0.037, 0.039),
+                (elbow[0], elbow[1] - 0.002, elbow[2] - 0.039),
+                forearm or sleeve,
+                segments=12,
+                rings=7,
+            ),
+            capsule(0.033, fore, elbow, forearm or sleeve, sides=12, down=True, tilt=fore_tilt),
             *(
-                [frustum(0.044, 0.040, 0.055, (elbow[0], elbow[1], elbow[2] - 0.155), cuff, sides=10)]
+                [frustum(0.039, 0.035, 0.044, (wrist[0], wrist[1] - 0.002, wrist[2] - 0.028), cuff, sides=12)]
                 if cuff
                 else []
+            ),
+            # Mitten: a palm with a thumb, so the hand is not a bare ball.
+            ellipsoid(
+                (0.042, 0.036, 0.048),
+                (wrist[0], wrist[1] - 0.008, wrist[2] - 0.062),
+                hand,
+                segments=14,
+                rings=7,
+            ),
+            ellipsoid(
+                (0.015, 0.013, 0.028),
+                (wrist[0] - side * 0.024, wrist[1] - 0.018, wrist[2] - 0.054),
+                hand,
+                segments=10,
+                rings=5,
             ),
         ]
 
@@ -625,7 +719,7 @@ def _arms(
 def _boots(skin: str, colour: str) -> list[dict[str, Any]]:
     return _pair(
         lambda side: [
-            frustum(0.058, 0.050, 0.150, (side * 0.070, 0.0, 0.030), colour, sides=10),
+            frustum(0.056, 0.048, 0.140, (side * 0.072, 0.0, 0.028), colour, sides=12),
         ]
     )
 
@@ -633,41 +727,74 @@ def _boots(skin: str, colour: str) -> list[dict[str, Any]]:
 def _hat_straw(accent: str, band: str) -> list[dict[str, Any]]:
     return [
         lathe(
-            [(0.0, 0.0), (0.300, 0.008), (0.316, 0.042), (0.170, 0.070), (0.164, 0.210), (0.0, 0.246)],
-            (0.0, 0.0, 1.128),
+            [(0.0, 0.0), (0.272, 0.008), (0.286, 0.038), (0.156, 0.064), (0.150, 0.196), (0.0, 0.230)],
+            (0.0, 0.0, 1.084),
             accent,
-            sides=18,
+            sides=20,
             cap_bottom=False,
         ),
-        frustum(0.168, 0.166, 0.038, (0.0, 0.0, 1.148), band, sides=18),
+        frustum(0.154, 0.152, 0.034, (0.0, 0.0, 1.102), band, sides=20),
     ]
 
 
-def _hair_cap(colour: str, *, base: float = 1.052, radius: float = 0.161) -> list[dict[str, Any]]:
+def _hair_cap(colour: str, *, base: float = 1.044, radius: float = 0.146) -> list[dict[str, Any]]:
     """A shell over the top of the skull only.
 
-    Starting this above the brows is what keeps the face readable; the back of
-    the head is covered separately by a mass offset behind the face.
+    The base is the whole trick. At z 1.052, where this used to start, the shell
+    was wider than the head at every point near it, so it swallowed the brows and
+    the top of the eyes. It now starts just above the brow line, and the profile
+    is shaved so the mass does not balloon up through a hat crown.
     """
     return [
         lathe(
             [
-                (radius * 0.98, 0.0),
-                (radius, 0.048),
-                (radius * 0.88, 0.132),
-                (radius * 0.44, 0.182),
-                (0.0, 0.202),
+                (radius * 0.97, 0.0),
+                (radius, 0.030),
+                (radius * 0.92, 0.076),
+                (radius * 0.50, 0.110),
+                (0.0, 0.128),
             ],
             (0.0, 0.0, base),
             colour,
-            sides=18,
-            cap_bottom=False,
+            sides=20,
         )
     ]
 
 
+def _hair_mass(colour: str, *, back: float = 0.126) -> list[dict[str, Any]]:
+    """The hair behind and beside the face, blended into the cap.
+
+    The fringe, the crown and the side locks used to be three separate blocks
+    that met at visible seams. This mass spans from the nape to the crown, so the
+    parts overlap instead of abutting.
+    """
+    return [
+        ellipsoid((back, 0.112, 0.130), (0.0, 0.036, 0.902), colour, segments=18, rings=9),
+        *_pair(
+            lambda side: [
+                ellipsoid((0.028, 0.062, 0.090), (side * 0.122, 0.008, 0.952), colour, segments=12, rings=7)
+            ]
+        ),
+    ]
+
+
+def _fringe(colour: str) -> list[dict[str, Any]]:
+    """A thin band at the hairline that stays off the brows."""
+    return [ellipsoid((0.100, 0.024, 0.034), (0.0, -0.146, 1.026), colour, segments=16, rings=8)]
+
+
 def _bun(colour: str, x: float, z: float, radius: float) -> list[dict[str, Any]]:
-    return [ellipsoid((radius, radius, radius * 0.86), (x, 0.012, z), colour, segments=14, rings=8)]
+    """A hair bun with a band around its root, so it cannot read as an ear."""
+    return [
+        ellipsoid((radius, radius, radius * 0.88), (x, 0.030, z), colour, segments=14, rings=8),
+        lathe(
+            [(radius * 0.62, 0.0), (radius * 0.70, 0.014), (radius * 0.62, 0.026)],
+            (x * 0.86, 0.030, z),
+            'navy',
+            sides=12,
+        ),
+    ]
+
 
 
 def _character_farmer() -> list[dict[str, Any]]:
@@ -681,7 +808,7 @@ def _character_farmer() -> list[dict[str, Any]]:
     # straw hair poking out under the brim, then the hat itself
     parts.extend(
         [
-            ellipsoid((0.150, 0.160, 0.110), (0.0, 0.018, 0.905), 'hairDark', segments=16, rings=8),
+            ellipsoid((0.138, 0.148, 0.100), (0.0, 0.016, 0.916), 'hairDark', segments=16, rings=8),
             *_hat_straw('accentSecondary', 'groupRed'),
         ]
     )
@@ -709,57 +836,66 @@ def _character_farmer() -> list[dict[str, Any]]:
 
 
 def _character_girl() -> list[dict[str, Any]]:
-    dress = 'player_girl'
-    blouse = 'uiPanel'
+    """A school sailor uniform: white blouse, navy collar, pleated skirt."""
+    blouse = 'trim'
+    navy = 'navy'
+    scarf = 'groupRed'
     hair = 'hairWarm'
     parts: list[dict[str, Any]] = []
-    # legs below the hem, with knee socks
-    parts.extend(_legs(SKIN, SKIN, 'uiPanel', 'accentPrimary'))
-    parts.append(
-        lathe(
-            [(0.204, 0.0), (0.188, 0.140), (0.164, 0.262), (0.152, 0.302)],
-            (0.0, 0.0, 0.316),
-            dress,
-            sides=20,
-            cap_bottom=True,
-        )
-    )
-    parts.append(frustum(0.132, 0.150, 0.155, (0.0, 0.0, 0.598), blouse, sides=14))
-    parts.append(frustum(0.150, 0.156, 0.060, (0.0, 0.0, 0.752), dress, sides=14))
-    parts.extend(_torso_upper_only(blouse))
-    parts.extend(_arms(blouse, SKIN, spread=0.34, cuff='uiPanel'))
-    parts.extend(_face(SKIN, brow='hairWarm', blush='player_girl'))
-    # hair: cap, long back mass, fringe, twin buns with ribbons
-    parts.extend(_hair_cap(hair))
-    parts.extend(
-        [
-            ellipsoid((0.152, 0.140, 0.150), (0.0, 0.040, 0.870), hair, segments=16, rings=9),
-            ellipsoid((0.050, 0.040, 0.120), (0.132, 0.030, 0.900), hair, segments=12, rings=6),
-            ellipsoid((0.050, 0.040, 0.120), (-0.132, 0.030, 0.900), hair, segments=12, rings=6),
-            ellipsoid((0.100, 0.070, 0.070), (0.0, -0.118, 1.128), hair, segments=14, rings=7),
-            *_bun(hair, 0.138, 1.108, 0.058),
-            *_bun(hair, -0.138, 1.108, 0.058),
-            box((0.062, 0.020, 0.016), (0.140, 0.040, 1.112), 'accentPrimary', turn=0.34),
-            box((0.062, 0.020, 0.016), (-0.140, 0.040, 1.112), 'accentPrimary', turn=-0.34),
-            ellipsoid((0.024, 0.019, 0.024), (0.150, 0.024, 1.152), 'accentPrimary', segments=10, rings=5),
-            ellipsoid((0.024, 0.019, 0.024), (-0.150, 0.024, 1.152), 'accentPrimary', segments=10, rings=5),
+    parts.extend(_legs(SKIN, SKIN, 'uiPanel', 'woodDark'))
+    # The skirt hangs from the waist with a thin trim, not a fat ring. Flat
+    # shading over twenty facets reads as pleats.
+    parts.append(frustum(0.130, 0.214, 0.256, (0.0, 0.0, 0.404), navy, sides=20, smooth=False))
+    parts.append(frustum(0.132, 0.136, 0.020, (0.0, 0.0, 0.648), navy, sides=20))
+    parts.extend(_chest(blouse))
+    parts.extend(_head(SKIN))
+    parts.extend(_neck(SKIN))
+    # Sailor collar: a panel over each shoulder, tilted to follow the slope,
+    # plus the square flap down the back — the part that reads from behind —
+    # and the V meeting over the breastbone.
+    def yoke(side: float) -> list[dict[str, Any]]:
+        lean = (0.0, side * 0.26)
+        return [
+            box((0.180, 0.176, 0.022), (side * 0.086, 0.0, 0.812), navy, tilt=lean),
+            box((0.184, 0.026, 0.011), (side * 0.086, -0.064, 0.824), 'uiPanel', tilt=lean),
+            box((0.184, 0.026, 0.011), (side * 0.086, -0.030, 0.824), 'uiPanel', tilt=lean),
         ]
+
+    parts.extend(_pair(yoke))
+    parts.append(box((0.250, 0.026, 0.150), (0.0, 0.108, 0.796), navy))
+    parts.append(box((0.254, 0.012, 0.012), (0.0, 0.126, 0.732), 'uiPanel'))
+    parts.append(box((0.254, 0.012, 0.012), (0.0, 0.126, 0.756), 'uiPanel'))
+    parts.append(box((0.112, 0.026, 0.056), (0.046, -0.100, 0.822), navy, turn=0.55))
+    parts.append(box((0.112, 0.026, 0.056), (-0.046, -0.100, 0.822), navy, turn=-0.55))
+    # Neckerchief: a knot at the throat with two short tails, so it reads as
+    # cloth rather than a flag pinned to the chest.
+    parts.append(ellipsoid((0.030, 0.022, 0.024), (0.0, -0.096, 0.780), scarf, segments=12, rings=6))
+    parts.append(
+        prism([(0.010, 0.066), (0.052, 0.066), (0.031, 0.0)], 0.022, (0.0, -0.130, 0.706), scarf, axis='y')
     )
-    # a little satchel
+    parts.append(
+        prism([(-0.052, 0.066), (-0.010, 0.066), (-0.031, 0.0)], 0.022, (0.0, -0.130, 0.706), scarf, axis='y')
+    )
+    parts.extend(_arms(blouse, SKIN, spread=0.32, cuff=navy))
+    parts.extend(_face(SKIN, brow=hair, blush='player_girl', iris='hairWarm'))
+    parts.extend(_hair_cap(hair))
+    parts.extend(_hair_mass(hair))
+    parts.extend(_fringe(hair))
     parts.extend(
         [
-            box((0.090, 0.048, 0.080), (0.150, 0.036, 0.640), 'accentSecondary', turn=0.18),
-            box((0.020, 0.020, 0.030), (0.146, 0.010, 0.690), 'woodDark'),
+            *_bun(hair, 0.118, 1.084, 0.052),
+            *_bun(hair, -0.118, 1.084, 0.052),
         ]
     )
     return _lift(parts)
 
 
+
 def _torso_upper_only(shirt: str) -> list[dict[str, Any]]:
     return [
-        ellipsoid((0.152, 0.098, 0.054), (0.0, 0.0, 0.716), shirt, segments=16, rings=8),
-        cylinder(0.048, 0.078, (0.0, 0.0, 0.850), SKIN, 12),
-        ellipsoid((0.146, 0.156, 0.152), (0.0, 0.0, 0.886), SKIN, segments=18, rings=10),
+        *_chest(shirt),
+        *_neck(SKIN),
+        ellipsoid((0.130, 0.140, 0.126), (0.0, 0.0, 0.886), SKIN, segments=18, rings=10),
     ]
 
 
@@ -784,34 +920,34 @@ def _character_madame() -> list[dict[str, Any]]:
     parts.extend(_hair_cap('hairDark'))
     parts.extend(
         [
-            ellipsoid((0.150, 0.132, 0.140), (0.0, 0.052, 0.880), 'hairDark', segments=16, rings=9),
+            ellipsoid((0.132, 0.118, 0.126), (0.0, 0.048, 0.892), 'hairDark', segments=16, rings=9),
             lathe(
-                [(0.052, 0.0), (0.098, 0.052), (0.080, 0.120), (0.0, 0.150)],
-                (0.0, 0.020, 1.190),
+                [(0.048, 0.0), (0.092, 0.050), (0.074, 0.116), (0.0, 0.146)],
+                (0.0, 0.020, 1.132),
                 'hairDark',
-                sides=14,
-            ),
-            ellipsoid((0.022, 0.018, 0.030), (0.140, 0.004, 0.985), 'accentSecondary', segments=10, rings=5),
-            ellipsoid((0.022, 0.018, 0.030), (-0.140, 0.004, 0.985), 'accentSecondary', segments=10, rings=5),
-            lathe(
-                [(0.104, 0.0), (0.108, 0.016), (0.086, 0.030)],
-                (0.0, 0.010, 1.078),
-                'accentSecondary',
                 sides=16,
+            ),
+            ellipsoid((0.022, 0.018, 0.030), (0.152, 0.004, 0.985), 'accentSecondary', segments=10, rings=5),
+            ellipsoid((0.022, 0.018, 0.030), (-0.152, 0.004, 0.985), 'accentSecondary', segments=10, rings=5),
+            lathe(
+                [(0.150, 0.0), (0.156, 0.012), (0.132, 0.024)],
+                (0.0, 0.004, 1.038),
+                'accentSecondary',
+                sides=18,
                 cap_bottom=False,
             ),
-            ellipsoid((0.020, 0.016, 0.022), (0.0, -0.104, 1.088), 'accentPrimary', segments=10, rings=5),
+            ellipsoid((0.019, 0.015, 0.021), (0.0, -0.150, 1.048), 'accentPrimary', segments=10, rings=5),
         ]
     )
     # stole, necklace and a folded fan
-    parts.append(frustum(0.126, 0.150, 0.062, (0.0, 0.0, 0.804), 'trim', sides=16))
+    parts.append(frustum(0.132, 0.148, 0.042, (0.0, 0.0, 0.816), 'trim', sides=18))
     parts.extend(
         [
             *(
                 [
-                    ellipsoid((0.014, 0.012, 0.014), (0.0, -0.118, 0.826), 'accentSecondary', segments=8, rings=4),
-                    ellipsoid((0.013, 0.011, 0.013), (0.030, -0.112, 0.834), 'accentSecondary', segments=8, rings=4),
-                    ellipsoid((0.013, 0.011, 0.013), (-0.030, -0.112, 0.834), 'accentSecondary', segments=8, rings=4),
+                    ellipsoid((0.014, 0.012, 0.014), (0.0, -0.098, 0.822), 'accentSecondary', segments=8, rings=4),
+                    ellipsoid((0.013, 0.011, 0.013), (0.030, -0.094, 0.830), 'accentSecondary', segments=8, rings=4),
+                    ellipsoid((0.013, 0.011, 0.013), (-0.030, -0.094, 0.830), 'accentSecondary', segments=8, rings=4),
                 ]
             )
         ]
@@ -849,9 +985,9 @@ def _character_ninja() -> list[dict[str, Any]]:
     parts.extend(
         _pair(
             lambda side: [
-                ellipsoid((0.046, 0.032, 0.036), (side * 0.060, -0.152, 1.042), 'uiPanel',
+                ellipsoid((0.036, 0.022, 0.026), (side * 0.052, -0.150, 0.960), 'uiPanel',
                           segments=12, rings=6),
-                ellipsoid((0.027, 0.024, 0.028), (side * 0.062, -0.166, 1.048), DARK,
+                ellipsoid((0.021, 0.018, 0.020), (side * 0.054, -0.160, 0.965), DARK,
                           segments=10, rings=5),
             ]
         )
@@ -859,20 +995,20 @@ def _character_ninja() -> list[dict[str, Any]]:
     # hood over the whole skull with a gap for the eyes, plus a mask and headband
     parts.extend(
         [
-            ellipsoid((0.166, 0.176, 0.170), (0.0, 0.008, 0.872), suit, segments=18, rings=10),
-            box((0.208, 0.120, 0.104), (0.0, -0.100, 0.932), DARK),
-            box((0.212, 0.034, 0.022), (0.0, -0.176, 1.086), DARK),
+            ellipsoid((0.150, 0.160, 0.146), (0.0, 0.008, 0.878), suit, segments=18, rings=10),
+            box((0.184, 0.110, 0.096), (0.0, -0.092, 0.928), DARK),
+            box((0.186, 0.032, 0.020), (0.0, -0.144, 1.014), DARK),
             frustum(0.100, 0.132, 0.060, (0.0, 0.004, 0.808), DARK, sides=16),
         ]
     )
     # headband with trailing tails
     parts.extend(
         [
-            frustum(0.158, 0.156, 0.036, (0.0, 0.0, 1.082), 'groupRed', sides=18),
+            frustum(0.152, 0.150, 0.036, (0.0, 0.0, 1.030), 'groupRed', sides=20),
             prism(
                 [(0.0, 0.0), (0.130, 0.030), (0.150, 0.180), (0.0, 0.120)],
                 0.020,
-                (0.130, 0.080, 1.076),
+                (0.126, 0.080, 1.026),
                 'groupRed',
                 axis='z',
                 turn=0.4,
@@ -880,7 +1016,7 @@ def _character_ninja() -> list[dict[str, Any]]:
             prism(
                 [(0.0, 0.0), (0.100, 0.020), (0.118, 0.150), (0.0, 0.100)],
                 0.018,
-                (0.126, 0.098, 1.062),
+                (0.122, 0.098, 1.012),
                 'groupRed',
                 axis='z',
                 turn=0.9,
@@ -907,7 +1043,7 @@ def _character_ninja() -> list[dict[str, Any]]:
     parts.extend(
         _pair(
             lambda side: [
-                frustum(0.048, 0.044, 0.130, (side * 0.070, 0.0, 0.180), wrap, sides=12),
+                frustum(0.054, 0.049, 0.140, (side * 0.072, 0.0, 0.176), wrap, sides=14),
             ]
         )
     )
@@ -1588,10 +1724,16 @@ def render_portrait(archetype: str, out_path: Path, palette: dict[str, str], siz
     camera.data.lens = 55.0
     bpy.context.scene.camera = camera
     bpy.ops.object.light_add(type='AREA', location=(1.1, -1.6, 2.4))
-    bpy.context.active_object.data.energy = 90.0
+    bpy.context.active_object.data.energy = 52.0
     bpy.context.active_object.data.size = 1.6
     bpy.ops.object.light_add(type='SUN', location=(-2.0, 2.0, 4.0))
-    bpy.context.active_object.data.energy = 1.4
+    bpy.context.active_object.data.energy = 0.85
+    # A rim from behind keeps the dark hair from collapsing into one silhouette.
+    bpy.ops.object.light_add(type='AREA', location=(-0.4, 2.2, 1.8))
+    rim = bpy.context.active_object
+    rim.data.energy = 34.0
+    rim.data.size = 1.2
+    rim.rotation_euler = (math.radians(118.0), 0.0, math.radians(190.0))
 
     scene = bpy.context.scene
     scene.render.engine = 'CYCLES'

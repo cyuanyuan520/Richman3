@@ -37,7 +37,8 @@
     "metal": "#b9c2cc",
     "roofTile": "#b8552f",
     "roofSlate": "#46525f",
-    "lips": "#b5534b"
+    "lips": "#b5534b",
+    "navy": "#22335c"
   },
   "lightIntensity": 3.2,
   "shadowSoftness": 0.65

@@ -1065,11 +1065,11 @@
       "animated": false,
       "animations": [],
       "bounds": [
-        0.632,
-        0.622,
-        1.441
+        0.572,
+        0.572,
+        1.373
       ],
-      "bytes": 89216,
+      "bytes": 127636,
       "glbPath": "public/models/char_farmer.glb",
       "key": "char_farmer",
       "materials": [
@@ -1090,27 +1090,28 @@
         "character",
         "archetype:farmer"
       ],
-      "triangles": 4016,
-      "vertices": 2100
+      "triangles": 6152,
+      "vertices": 3190
     },
     {
       "animated": false,
       "animations": [],
       "bounds": [
-        0.482,
-        0.408,
-        1.331
+        0.5,
+        0.428,
+        1.235
       ],
-      "bytes": 104976,
+      "bytes": 154064,
       "glbPath": "public/models/char_girl.glb",
       "key": "char_girl",
       "materials": [
-        "accentPrimary",
-        "accentSecondary",
+        "groupRed",
         "hairWarm",
         "lips",
+        "navy",
         "player_girl",
         "skin",
+        "trim",
         "uiPanel",
         "uiText",
         "woodDark"
@@ -1120,18 +1121,18 @@
         "character",
         "archetype:girl"
       ],
-      "triangles": 5090,
-      "vertices": 2651
+      "triangles": 7528,
+      "vertices": 3904
     },
     {
       "animated": false,
       "animations": [],
       "bounds": [
-        0.566,
+        0.575,
         0.439,
-        1.24
+        1.178
       ],
-      "bytes": 81756,
+      "bytes": 105060,
       "glbPath": "public/models/char_madame.glb",
       "key": "char_madame",
       "materials": [
@@ -1150,18 +1151,18 @@
         "character",
         "archetype:madame"
       ],
-      "triangles": 3862,
-      "vertices": 2022
+      "triangles": 5182,
+      "vertices": 2687
     },
     {
       "animated": false,
       "animations": [],
       "bounds": [
-        0.47,
-        0.865,
-        1.275
+        0.483,
+        0.848,
+        1.229
       ],
-      "bytes": 81272,
+      "bytes": 113344,
       "glbPath": "public/models/char_ninja.glb",
       "key": "char_ninja",
       "materials": [
@@ -1180,13 +1181,13 @@
         "character",
         "archetype:ninja"
       ],
-      "triangles": 3712,
-      "vertices": 1932
+      "triangles": 5456,
+      "vertices": 2824
     },
     {
       "animated": false,
       "animations": [],
-      "bytes": 65798,
+      "bytes": 64055,
       "key": "portrait_farmer",
       "pngPath": "public/models/portrait_farmer.png",
       "scale": 1.0,
@@ -1198,7 +1199,7 @@
     {
       "animated": false,
       "animations": [],
-      "bytes": 54172,
+      "bytes": 56380,
       "key": "portrait_girl",
       "pngPath": "public/models/portrait_girl.png",
       "scale": 1.0,
@@ -1210,7 +1211,7 @@
     {
       "animated": false,
       "animations": [],
-      "bytes": 58606,
+      "bytes": 59603,
       "key": "portrait_madame",
       "pngPath": "public/models/portrait_madame.png",
       "scale": 1.0,
@@ -1222,7 +1223,7 @@
     {
       "animated": false,
       "animations": [],
-      "bytes": 55575,
+      "bytes": 55310,
       "key": "portrait_ninja",
       "pngPath": "public/models/portrait_ninja.png",
       "scale": 1.0,

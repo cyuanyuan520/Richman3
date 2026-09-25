@@ -29,6 +29,7 @@ def parse_args(argv: Sequence[str]) -> argparse.Namespace:
     parser.add_argument("--width", type=int, default=420)
     parser.add_argument("--height", type=int, default=520)
     parser.add_argument("--samples", type=int, default=48)
+    parser.add_argument("--view", default="quarter", choices=("quarter", "front", "head"))
     return parser.parse_args(argv)
 
 
@@ -65,17 +66,26 @@ def bounds(objects: Sequence[Any]) -> tuple[Vector, Vector]:
     return low, high
 
 
-def place_camera(centre: Any, radius: float, scene: Any) -> None:
+def place_camera(centre: Any, radius: float, scene: Any, view: str = "quarter") -> None:
     camera_data = bpy.data.cameras.new("preview-camera")
     camera_data.lens = 55.0
     camera = bpy.data.objects.new("preview-camera", camera_data)
     scene.collection.objects.link(camera)
-    distance = radius * 3.1
-    camera.location = (
-        centre[0] + distance * 0.62,
-        centre[1] - distance * 0.78,
-        centre[2] + distance * 0.44,
-    )
+    if view == "head":
+        # Close on the face band, which is where the eyes and the brows are.
+        centre = (centre[0], centre[1], centre[2] + radius * 0.34)
+        distance = radius * 1.9
+        camera.location = (centre[0], centre[1] - distance, centre[2] + distance * 0.06)
+    elif view == "front":
+        distance = radius * 3.1
+        camera.location = (centre[0], centre[1] - distance, centre[2] + distance * 0.10)
+    else:
+        distance = radius * 3.1
+        camera.location = (
+            centre[0] + distance * 0.62,
+            centre[1] - distance * 0.78,
+            centre[2] + distance * 0.44,
+        )
     target = bpy.data.objects.new("preview-target", None)
     scene.collection.objects.link(target)
     target.location = centre
@@ -116,6 +126,7 @@ def render_group(
     width: int,
     height: int,
     samples: int,
+    view: str = "quarter",
 ) -> None:
     scene = bpy.context.scene
     scene.render.resolution_x = width
@@ -147,8 +158,8 @@ def render_group(
         # Pull every model back to its own origin, then lay the group out in a
         # grid whose pitch scales with the biggest thing on the sheet.
         low, high = bounds(slot_objects)
-        width = max(high[0] - low[0], high[1] - low[1], 0.4)
-        pitch = width * 1.35
+        footprint = max(high[0] - low[0], high[1] - low[1], 0.4)
+        pitch = footprint * 1.35
         offset_x = (index % columns) * pitch
         offset_y = (index // columns) * pitch
         for obj in slot_objects:
@@ -168,7 +179,7 @@ def render_group(
     centre = tuple((low[a] + high[a]) / 2.0 for a in range(3))
     span = max(high[0] - low[0], high[1] - low[1], high[2] - low[2], 0.5)
     print(f"preview: centre={centre} span={span} meshes={len(everything)}")
-    place_camera(centre, span / 2.0, scene)
+    place_camera(centre, span / 2.0, scene, view)
     place_lights(centre, span / 2.0, scene)
     print(f"preview: camera={tuple(round(c, 2) for c in scene.camera.location)}")
     world_backdrop((0.16, 0.17, 0.21, 1.0))
@@ -190,6 +201,7 @@ def main() -> int:
         args.width,
         args.height,
         args.samples,
+        args.view,
     )
     return 0
 
