@@ -1069,7 +1069,7 @@
         0.572,
         1.373
       ],
-      "bytes": 127636,
+      "bytes": 123208,
       "glbPath": "public/models/char_farmer.glb",
       "key": "char_farmer",
       "materials": [
@@ -1090,18 +1090,18 @@
         "character",
         "archetype:farmer"
       ],
-      "triangles": 6152,
-      "vertices": 3190
+      "triangles": 5912,
+      "vertices": 3066
     },
     {
       "animated": false,
       "animations": [],
       "bounds": [
         0.5,
-        0.428,
-        1.235
+        0.432,
+        1.243
       ],
-      "bytes": 154064,
+      "bytes": 149640,
       "glbPath": "public/models/char_girl.glb",
       "key": "char_girl",
       "materials": [
@@ -1121,8 +1121,8 @@
         "character",
         "archetype:girl"
       ],
-      "triangles": 7528,
-      "vertices": 3904
+      "triangles": 7288,
+      "vertices": 3780
     },
     {
       "animated": false,
@@ -1132,7 +1132,7 @@
         0.439,
         1.178
       ],
-      "bytes": 105060,
+      "bytes": 100780,
       "glbPath": "public/models/char_madame.glb",
       "key": "char_madame",
       "materials": [
@@ -1151,8 +1151,8 @@
         "character",
         "archetype:madame"
       ],
-      "triangles": 5182,
-      "vertices": 2687
+      "triangles": 4950,
+      "vertices": 2567
     },
     {
       "animated": false,
@@ -1187,7 +1187,7 @@
     {
       "animated": false,
       "animations": [],
-      "bytes": 64055,
+      "bytes": 63902,
       "key": "portrait_farmer",
       "pngPath": "public/models/portrait_farmer.png",
       "scale": 1.0,
@@ -1199,7 +1199,7 @@
     {
       "animated": false,
       "animations": [],
-      "bytes": 56380,
+      "bytes": 55481,
       "key": "portrait_girl",
       "pngPath": "public/models/portrait_girl.png",
       "scale": 1.0,
@@ -1211,7 +1211,7 @@
     {
       "animated": false,
       "animations": [],
-      "bytes": 59603,
+      "bytes": 59618,
       "key": "portrait_madame",
       "pngPath": "public/models/portrait_madame.png",
       "scale": 1.0,
