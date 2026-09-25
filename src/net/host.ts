@@ -368,7 +368,15 @@ export class HostSession {
       this.reject(link, 'unknown-seat', reconnect.playerId);
       return true;
     }
-    this.session = setPlayerConnected(this.session, reconnect.playerId, true).session;
+    // Detach any other link still bound to this seat. A refresh can beat the
+    // host's close detection, and a stale link would otherwise flip the seat
+    // back to disconnected the moment its socket finally closes.
+    for (const other of this.links.values()) {
+      if (other !== link && other.playerId === reconnect.playerId) other.playerId = null;
+    }
+    this.applyHostResult(setPlayerConnected(this.session, reconnect.playerId, true), {
+      roomInfo: true,
+    });
     link.playerId = reconnect.playerId;
     link.pending = null;
     link.proposedId = null;
@@ -382,7 +390,6 @@ export class HostSession {
       reconnectToken: rotated,
     });
     this.send(link, 'STATE_SNAPSHOT', { state: this.session.state });
-    this.broadcastRoomInfo();
     this.options.onPeersChanged?.(this.connectedSeats());
     return true;
   }
@@ -477,6 +484,7 @@ export class HostSession {
     this.applyHostResult(setPlayerConnected(this.session, link.playerId, false), {
       roomInfo: true,
     });
+    this.options.onPeersChanged?.(this.connectedSeats());
   }
 
   /* --------------------------------------------------------------- broadcast */

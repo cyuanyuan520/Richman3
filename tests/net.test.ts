@@ -47,6 +47,7 @@ function makeRoom() {
   const creds = credentials();
   const network = createLoopbackNetwork(creds.peerId);
   const errors: string[] = [];
+  const peers: number[] = [];
   const joinRequests: { nickname: string; approve(): void; reject(): void }[] = [];
   const host = new HostSession({
     credentials: creds,
@@ -56,10 +57,11 @@ function makeRoom() {
     randomInt: counterRandomInt(),
     transport: (_peerId, _signal, handlers) => network.createHost(handlers),
     onError: (code, detail) => errors.push(`${code}:${detail}`),
+    onPeersChanged: (count) => peers.push(count),
     onJoinRequest: (request) => joinRequests.push(request),
   });
   host.start();
-  return { creds, network, host, errors, joinRequests };
+  return { creds, network, host, errors, peers, joinRequests };
 }
 
 interface ClientHandles {
@@ -579,6 +581,52 @@ describe('Gate 4 remediation', () => {
     expect(restored.seatToken?.token).not.toBe(seat?.token);
     first.session.close();
     restored.close();
+    host.stop();
+  });
+
+  it('keeps a rebound seat connected when the stale link finally closes', async () => {
+    const { creds, network, host } = makeRoom();
+    const raw = await rawConnect(network, creds.peerId);
+    raw.send(
+      { type: 'INTENT_JOIN', from: 'c1', payload: { roomId: creds.roomId, nickname: '首连' } },
+      0,
+    );
+    const accepted = await raw.waitFor('JOIN_ACCEPTED');
+    const seat = accepted.payload as { playerId: string; reconnectToken?: string };
+
+    // Rebind before the first link's close is observed, which is what a page
+    // refresh looks like: two live connections briefly claim the same seat.
+    const rebound = await rawConnect(network, creds.peerId);
+    rebound.send(
+      {
+        type: 'INTENT_JOIN',
+        from: seat.playerId,
+        payload: {
+          roomCode: creds.roomCode,
+          nickname: '重连',
+          reconnect: { playerId: seat.playerId, token: seat.reconnectToken ?? '' },
+        },
+      },
+      0,
+    );
+    await rebound.waitFor('JOIN_ACCEPTED');
+    expect(host.state.players.find((player) => player.id === seat.playerId)?.connected).toBe(true);
+
+    raw.connection.close();
+    await new Promise((resolve) => setTimeout(resolve, 5));
+    expect(host.state.players.find((player) => player.id === seat.playerId)?.connected).toBe(true);
+    expect(host.connectedSeats()).toBe(1);
+    rebound.connection.close();
+    host.stop();
+  });
+
+  it('reports the peer count when a seat drops', async () => {
+    const { creds, network, host, peers } = makeRoom();
+    const client = makeClient(network, '掉线者', 'char_girl');
+    await client.session.connect({ roomId: creds.roomId });
+    expect(peers.at(-1)).toBe(1);
+    network.dropAll();
+    await vi.waitFor(() => expect(peers.at(-1)).toBe(0));
     host.stop();
   });
 });
