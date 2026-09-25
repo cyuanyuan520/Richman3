@@ -67,9 +67,10 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Build the kit
-        run: pnpm build:models
-
+      # Deliberately no build step here: check:assets regenerates the kit into a
+      # scratch directory and compares it against the committed manifest. Building
+      # into public/models first would overwrite the committed artefacts and turn
+      # the comparison into fresh-versus-fresh, which can never detect drift.
       - name: Check structural idempotency
         run: pnpm check:assets
 

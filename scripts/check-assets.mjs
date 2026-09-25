@@ -26,6 +26,7 @@ const STRUCTURAL_FIELDS = [
   'scale',
   'tags',
   'animated',
+  'animations',
   'vertices',
   'triangles',
   'materials',

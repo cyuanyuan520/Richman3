@@ -39,6 +39,7 @@ const MeshAssetSchema = z.object({
   scale: z.number().positive(),
   tags: z.array(z.string()),
   animated: z.boolean(),
+  animations: z.array(z.string()),
   vertices: z.number().int().positive(),
   triangles: z.number().int().positive(),
   materials: z.array(z.string()).min(1),
@@ -52,6 +53,7 @@ const PortraitAssetSchema = z.object({
   scale: z.number().positive(),
   tags: z.array(z.string()),
   animated: z.boolean(),
+  animations: z.array(z.string()),
 });
 
 const ManifestSchema = z.object({

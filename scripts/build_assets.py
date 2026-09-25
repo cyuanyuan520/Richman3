@@ -79,11 +79,26 @@ def material_for(name: str, palette: dict[str, str], roughness: float = 0.65) ->
     return material
 
 
+def srgb_to_linear(channel: float) -> float:
+    """Convert one 0..1 sRGB channel to the scene-linear value Blender expects.
+
+    Theme tokens are authored as sRGB hex because the UI consumes them directly.
+    Feeding the raw sRGB value into `Base Color` would double-encode it: the
+    exporter writes the socket as linear `baseColorFactor`, so the model would
+    render visibly brighter and less saturated than the matching UI swatch.
+    """
+    if channel <= 0.04045:
+        return channel / 12.92
+    return ((channel + 0.055) / 1.055) ** 2.4
+
+
 def hex_to_rgb(value: str) -> tuple[float, float, float]:
     text = value.lstrip('#')
     if len(text) != 6:
         raise ValueError(f'not a hex colour: {value}')
-    return tuple(int(text[index : index + 2], 16) / 255.0 for index in (0, 2, 4))  # type: ignore[return-value]
+    return tuple(  # type: ignore[return-value]
+        srgb_to_linear(int(text[index : index + 2], 16) / 255.0) for index in (0, 2, 4)
+    )
 
 
 # --------------------------------------------------------------------------- #
@@ -546,19 +561,19 @@ def sphere_geometry(
 
     faces: list[tuple[int, ...]] = []
     for segment in range(segments):
-        faces.append((0, at(1, segment + 1), at(1, segment)))
+        faces.append((0, at(1, segment), at(1, segment + 1)))
     for ring in range(1, rings - 1):
         for segment in range(segments):
             faces.append(
                 (
                     at(ring, segment),
-                    at(ring, segment + 1),
-                    at(ring + 1, segment + 1),
                     at(ring + 1, segment),
+                    at(ring + 1, segment + 1),
+                    at(ring, segment + 1),
                 )
             )
     for segment in range(segments):
-        faces.append((last, at(rings - 1, segment), at(rings - 1, segment + 1)))
+        faces.append((last, at(rings - 1, segment + 1), at(rings - 1, segment)))
     return points, faces
 
 
@@ -607,6 +622,13 @@ def build_mesh(key: str, parts: list[dict[str, Any]], palette: dict[str, str]) -
     mesh.from_pydata(vertices, [], faces)
     mesh.validate()
     mesh.update()
+
+    # validate() drops degenerate faces, which would shift every material slot
+    # after the dropped one. Recipes are expected to be clean; fail loudly if not.
+    if len(mesh.polygons) != len(face_materials):
+        raise ValueError(
+            f'{key}: {len(face_materials) - len(mesh.polygons)} face(s) were rejected as degenerate'
+        )
 
     for colour in order:
         mesh.materials.append(material_for(colour, palette))
@@ -657,6 +679,7 @@ def describe(asset: Any, recipe: dict[str, Any], path: Path, repo_root: Path) ->
         'scale': recipe['scale'],
         'tags': recipe['tags'],
         'animated': False,
+        'animations': [],
         'vertices': len(mesh.vertices),
         'triangles': sum(len(polygon.vertices) - 2 for polygon in mesh.polygons),
         'materials': sorted({slot.material.name for slot in asset.material_slots if slot.material}),
@@ -687,14 +710,21 @@ def strip_png_text_chunks(path: Path) -> int:
     output = bytearray(data[:8])
     offset = 8
     while offset < len(data):
+        if offset + 12 > len(data):
+            raise ValueError(f'{path}: truncated chunk header at byte {offset}')
         length = int.from_bytes(data[offset : offset + 4], 'big')
         kind = data[offset + 4 : offset + 8]
-        chunk = data[offset : offset + 12 + length]
+        end = offset + 12 + length
+        if end > len(data):
+            raise ValueError(f'{path}: chunk {kind!r} claims {length} bytes but the file ends early')
+        chunk = data[offset:end]
         if kind in (b'tEXt', b'zTXt', b'iTXt'):
             dropped += 1
         else:
             output += chunk
-        offset += 12 + length
+        offset = end
+    if output[-8:-4] != b'IEND':
+        raise ValueError(f'{path}: last chunk is {bytes(output[-8:-4])!r}, expected IEND')
     if dropped:
         path.write_bytes(bytes(output))
     return dropped
@@ -708,8 +738,9 @@ def render_portrait(archetype: str, out_path: Path, palette: dict[str, str], siz
     camera = bpy.context.active_object
     bpy.context.scene.camera = camera
     bpy.ops.object.light_add(type='AREA', location=(1.6, -2.2, 3.0))
-    bpy.context.active_object.data.energy = 900.0
+    bpy.context.active_object.data.energy = 260.0
     bpy.ops.object.light_add(type='SUN', location=(-2.0, 2.0, 4.0))
+    bpy.context.active_object.data.energy = 1.4
 
     scene = bpy.context.scene
     scene.render.engine = 'CYCLES'
@@ -728,6 +759,10 @@ def render_portrait(archetype: str, out_path: Path, palette: dict[str, str], siz
     scene.render.threads_mode = 'FIXED'
     scene.render.threads = 1
     scene.render.filepath = str(out_path)
+    # The default AgX view transform desaturates hard, which reads as washed out
+    # next to the high-saturation UI swatches. Standard keeps the tokens honest.
+    scene.view_settings.view_transform = 'Standard'
+    scene.view_settings.look = 'None'
     # Blender stamps render metadata into PNG text chunks by default, including
     # the wall-clock date and Cycles timings, which would make an otherwise
     # identical render differ byte for byte.
@@ -739,7 +774,7 @@ def render_portrait(archetype: str, out_path: Path, palette: dict[str, str], siz
     if world_tree is None:
         world.use_nodes = True
         world_tree = world.node_tree
-    world_tree.nodes['Background'].inputs['Color'].default_value = (0.95, 0.95, 0.95, 1.0)
+    world_tree.nodes['Background'].inputs['Color'].default_value = (0.62, 0.62, 0.62, 1.0)
     scene.world = world
     bpy.ops.render.render(write_still=True)
     strip_png_text_chunks(out_path)
@@ -821,6 +856,7 @@ def main() -> int:
                 'scale': 1.0,
                 'tags': ['portrait', f'archetype:{archetype}'],
                 'animated': False,
+                'animations': [],
             }
         )
         print(f'rendered {key}')
