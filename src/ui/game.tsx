@@ -115,6 +115,9 @@ function ActionBar({
   const me = state.players.find((player) => player.id === localPlayerId) ?? null;
   const pending = state.pendingChoice;
   const mine = pending !== null && pending.playerId === localPlayerId;
+  // Captured as consts so the narrowing survives into the click handlers.
+  const buyTileId = pending?.kind === 'BUY_PROPERTY' ? pending.tileId : undefined;
+  const upgradeTileId = pending?.kind === 'UPGRADE_PROPERTY' ? pending.tileId : undefined;
 
   const character = characters.find((entry) => entry.id === me?.characterId);
   const activeSkill =
@@ -139,17 +142,14 @@ function ActionBar({
         </button>
       ) : null}
 
-      {mine && pending?.kind === 'BUY_PROPERTY' ? (
+      {mine && buyTileId !== undefined ? (
         <>
-          <span className="muted">买下 {pending.tileId}？</span>
+          <span className="muted">买下 {buyTileId}？</span>
           <button
             type="button"
             className="button-primary"
             onClick={() =>
-              dispatch({
-                type: 'INTENT_CHOICE',
-                payload: { choice: 'BUY_PROPERTY', option: 'BUY' },
-              } as ClientIntent)
+              dispatch({ type: 'INTENT_BUY', payload: { tileId: buyTileId } } as ClientIntent)
             }
           >
             购买
@@ -168,16 +168,16 @@ function ActionBar({
         </>
       ) : null}
 
-      {mine && pending?.kind === 'UPGRADE_PROPERTY' ? (
+      {mine && upgradeTileId !== undefined ? (
         <>
-          <span className="muted">升级 {pending.tileId}？</span>
+          <span className="muted">升级 {upgradeTileId}？</span>
           <button
             type="button"
             className="button-primary"
             onClick={() =>
               dispatch({
-                type: 'INTENT_CHOICE',
-                payload: { choice: 'UPGRADE_PROPERTY', option: 'UPGRADE' },
+                type: 'INTENT_UPGRADE',
+                payload: { tileId: upgradeTileId },
               } as ClientIntent)
             }
           >

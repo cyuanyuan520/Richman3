@@ -204,6 +204,9 @@ export class ClientSession {
     if (connection === null || this.playerId === null) return false;
     const message = {
       ...intent,
+      // The wire schema requires a payload object even when an intent carries
+      // no fields, and the UI dispatches bare intents.
+      payload: intent.payload ?? {},
       v: NET_PROTOCOL_VERSION,
       seq: this.outboundSeq,
       from: this.playerId,

@@ -4,6 +4,7 @@ import { CONTENT_PACK, CITY_METRO, THEME_TOKENS } from '@/content';
 import type { RoomConfig, Settings } from '@/engine/contracts/config';
 import { DEFAULT_ROOM_CONFIG } from '@/engine/contracts/config';
 import { ClientSession } from '@/net/client';
+import { isValidRoomId } from '@/lib/room-code';
 import { HostSession, MAX_PLAYERS } from '@/net/host';
 import { makeRoomCredentials } from '@/net/credentials';
 import { createAudioDirector, type AudioDirector } from '@/audio';
@@ -108,8 +109,10 @@ export default function App() {
       })
       .catch((cause: unknown) => {
         if (cancelled) return;
-        setManifestUrls({});
-        setError(`模型清单加载失败：${String(cause)}`);
+        // Leave the manifest unset rather than empty: `urls` then falls back to
+        // the direct /models/... paths, so a manifest problem degrades the
+        // board instead of blanking it.
+        setError(`模型清单加载失败，已改用默认路径：${String(cause)}`);
       });
     return () => {
       cancelled = true;
@@ -233,11 +236,19 @@ export default function App() {
         }),
     });
     setClientTable(table);
+    // A share link carries the full invite token, which doubles as an
+    // automatic admission credential; a typed code only locates the host and
+    // must be approved. Sending a 21 character invite as a room code would be
+    // rejected outright.
+    const target = isValidRoomId(roomCodeInput)
+      ? { roomId: roomCodeInput }
+      : { roomCode: roomCodeInput };
     table.client
-      .connect({ roomCode: roomCodeInput })
+      .connect(target)
       .then((result) => {
         setBusy(false);
-        if (!result.ok) setOnlineError(`加入失败：${result.reason ?? '未知原因'}`);
+        if (result.ok) setRoute('lobby');
+        else setOnlineError(`加入失败：${result.reason ?? '未知原因'}`);
       })
       .catch((cause: unknown) => {
         setBusy(false);
@@ -255,6 +266,17 @@ export default function App() {
 
   const snapshot = soloSnapshot ?? hostSnapshot ?? clientSnapshot;
 
+  // A joiner has no start button of its own, so the room leaving SETUP is the
+  // host's signal that the game began. Deriving this rather than syncing it in
+  // an effect keeps the route a pure function of what the host has published.
+  const effectiveRoute: Route =
+    route === 'lobby' &&
+    clientTable !== null &&
+    clientSnapshot !== null &&
+    clientSnapshot.state.phase !== 'SETUP'
+      ? 'game'
+      : route;
+
   const exitToMenu = useCallback(() => {
     setSolo(null);
     setHostTable(null);
@@ -262,8 +284,8 @@ export default function App() {
     setRoute('menu');
   }, []);
 
-  if ((route === 'game' || route === 'lobby') && snapshot !== null) {
-    if (route === 'game') {
+  if ((effectiveRoute === 'game' || effectiveRoute === 'lobby') && snapshot !== null) {
+    if (effectiveRoute === 'game') {
       return (
         <Suspense fallback={<div className="screen">正在准备棋盘…</div>}>
           <GameScreen
@@ -283,7 +305,7 @@ export default function App() {
     }
   }
 
-  if (route === 'lobby' && (hostTable !== null || clientTable !== null)) {
+  if (effectiveRoute === 'lobby' && (hostTable !== null || clientTable !== null)) {
     const room = hostTable?.info() ?? null;
     const info = clientTable?.info() ?? null;
     const shareUrl = room === null ? null : `${window.location.origin}/?room=${room.roomId}`;
@@ -470,7 +492,7 @@ export default function App() {
     );
   }
 
-  if (route === 'solo') {
+  if (effectiveRoute === 'solo') {
     return (
       <SoloSetupScreen
         characters={CONTENT_PACK.characters}
@@ -486,7 +508,7 @@ export default function App() {
     );
   }
 
-  if (route === 'online') {
+  if (effectiveRoute === 'online') {
     return (
       <OnlineScreen
         mode="join"
@@ -503,7 +525,7 @@ export default function App() {
     );
   }
 
-  if (route === 'settings') {
+  if (effectiveRoute === 'settings') {
     return (
       <SettingsScreen
         settings={settings}
@@ -518,7 +540,7 @@ export default function App() {
     );
   }
 
-  if (route === 'rules') {
+  if (effectiveRoute === 'rules') {
     return <RulesScreen onBack={() => setRoute('menu')} />;
   }
 

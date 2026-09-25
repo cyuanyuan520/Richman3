@@ -105,7 +105,14 @@ export function createHostTable(options: HostTableOptions): HostTable {
   let seq = 0;
   let timer: ReturnType<typeof setTimeout> | null = null;
 
+  // React's external-store contract requires getSnapshot to return the same
+  // reference until the data actually changes, otherwise every render schedules
+  // another one. `publish` is the only thing that changes the data, so it is
+  // also the only thing that invalidates the cache.
+  let cached: TableSnapshot | null = null;
+
   const publish = (): void => {
+    cached = null;
     for (const listener of listeners) listener();
   };
 
@@ -145,7 +152,7 @@ export function createHostTable(options: HostTableOptions): HostTable {
   }
 
   tail.reset(host.state);
-  const snap = (): TableSnapshot => tail.snapshot(host.state);
+  const snap = (): TableSnapshot => (cached ??= tail.snapshot(host.state));
 
   return {
     host,
@@ -233,6 +240,8 @@ const EMPTY_STATE = {
   chaosPool: [],
 } as unknown as GameState;
 
+const EMPTY_SNAPSHOT: TableSnapshot = { state: EMPTY_STATE, events: [], lastRoll: null };
+
 export interface ClientTableOptions {
   createClient(hooks: ClientHooks): ClientSession;
 }
@@ -245,7 +254,12 @@ export function createClientTable(options: ClientTableOptions): ClientTable {
   let info: RoomInfo | null = null;
   let status: ClientStatus = 'idle';
 
+  // Same caching rule as the host table: React only re-renders when the
+  // reference actually changes.
+  let cached: TableSnapshot | null = null;
+
   const publish = (): void => {
+    cached = null;
     for (const listener of listeners) listener();
   };
 
@@ -275,8 +289,7 @@ export function createClientTable(options: ClientTableOptions): ClientTable {
 
   return {
     client,
-    getSnapshot: () =>
-      state === null ? { state: EMPTY_STATE, events: [], lastRoll: null } : tail.snapshot(state),
+    getSnapshot: () => (cached ??= state === null ? EMPTY_SNAPSHOT : tail.snapshot(state)),
     subscribe(listener) {
       listeners.add(listener);
       return () => {
