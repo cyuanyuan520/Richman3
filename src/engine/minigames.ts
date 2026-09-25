@@ -15,6 +15,8 @@ export interface MiniGameResolutionInput {
   readonly cursor: number;
   readonly participantIds: readonly string[];
   readonly submissions: Readonly<Record<string, string>>;
+  /** Optional per-kind tuning from the content definition (see `WHEEL.spinMax`). */
+  readonly rules?: Readonly<Record<string, number | string | boolean>>;
 }
 
 export interface MiniGameResolution {
@@ -54,12 +56,18 @@ function rankByScore(
   return ranks;
 }
 
-/** Each participant spins 0–99; highest spin wins. */
-export const resolveWheel: MiniGameResolver = ({ seed, cursor, participantIds }) => {
+/** Reads a positive integer tuning value, falling back to the resolver default. */
+function readPositiveInt(value: unknown, fallback: number): number {
+  return typeof value === 'number' && Number.isInteger(value) && value > 0 ? value : fallback;
+}
+
+/** Each participant spins `0..spinMax`; highest spin wins. */
+export const resolveWheel: MiniGameResolver = ({ seed, cursor, participantIds, rules }) => {
+  const spinMax = readPositiveInt(rules?.['spinMax'], 99);
   let workingCursor = cursor;
   const scores: Record<string, number> = {};
   for (const id of participantIds) {
-    scores[id] = rngInt(seed, workingCursor, 100);
+    scores[id] = rngInt(seed, workingCursor, spinMax + 1);
     workingCursor += 1;
   }
   return { cursor: workingCursor, ranks: rankByScore(participantIds, scores), detail: scores };

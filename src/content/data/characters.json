@@ -17,7 +17,7 @@
   },
   {
     "id": "char_girl",
-    "name": "元气小妹·糖糖",
+    "name": "元气小妹·果果",
     "archetype": "girl",
     "modelRef": "char_girl",
     "portraitRef": "portrait_girl",
@@ -25,10 +25,10 @@
     "skill": {
       "id": "skill_girl_livestream",
       "name": "直播带货",
-      "desc": "主动（冷却 3 回合）：粉丝疯狂刷礼物，立刻到账 2500 元。",
+      "desc": "主动（冷却 3 回合）：粉丝疯狂刷礼物，立刻到账 1500 元。",
       "type": "ACTIVE",
       "cooldown": 3,
-      "effect": [{ "kind": "MONEY", "value": 2500 }]
+      "effect": [{ "kind": "MONEY", "value": 1500 }]
     }
   },
   {
@@ -41,10 +41,10 @@
     "skill": {
       "id": "skill_madame_rent",
       "name": "狮子大开口",
-      "desc": "被动：收取租金时额外 +25%。",
+      "desc": "被动：收取租金时额外 +35%。",
       "type": "PASSIVE",
       "trigger": "ON_PAY",
-      "effect": [{ "kind": "STATUS", "status": "RENT_BOOST", "duration": 1, "value": 0.25 }]
+      "effect": [{ "kind": "STATUS", "status": "RENT_BOOST", "duration": 1, "value": 0.35 }]
     }
   },
   {

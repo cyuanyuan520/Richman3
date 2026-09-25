@@ -161,7 +161,7 @@
   {
     "id": "chaos_learn_rent",
     "title": "偷师收租婆",
-    "text": "你偷偷学会了收租婆的绝活，本回合收租也能狮子大开口。",
+    "text": "你偷偷学会了收租婆的绝活，本回合收租也能狮子大开口（与珍姐的被动可叠加）。",
     "weight": 3,
     "target": "SELF",
     "effect": [{ "kind": "SKILL", "skillId": "skill_madame_rent" }]

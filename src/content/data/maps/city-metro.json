@@ -432,8 +432,8 @@
   ],
   "rules": {
     "startingMoney": 20000,
-    "salary": 3000,
-    "baseRentRatio": 0.15,
+    "salary": 2500,
+    "baseRentRatio": 0.22,
     "rentMultipliers": [1, 2, 4, 8, 16],
     "maxLevel": 4,
     "upgradeCostRatio": 0.5,

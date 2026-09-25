@@ -10,7 +10,7 @@
 
 import { z } from 'zod';
 import { EconomyRulesOverrideSchema } from '../economy';
-import { EffectListSchema, validateEffectList } from './effects';
+import { EffectListSchema, validateEffectList, type Effect } from './effects';
 import {
   ArchetypeSchema,
   CenterNodeTypeSchema,
@@ -132,8 +132,13 @@ export const MiniGameDefinitionSchema = z.object({
   name: z.string().min(1).max(24),
   minPlayers: z.number().int().min(2).max(4),
   maxPlayers: z.number().int().min(2).max(4),
-  /** Free-form per-kind tuning consumed by the matching resolver. */
-  rules: z.record(z.string(), z.union([z.number(), z.string(), z.boolean()])),
+  /**
+   * Optional per-kind tuning consumed by the matching resolver — currently
+   * `WHEEL.spinMax`. Unknown keys and omitted values fall back to the
+   * resolver's own defaults, so this stays a tuning surface rather than a
+   * second source of truth.
+   */
+  rules: z.record(z.string(), z.union([z.number(), z.string(), z.boolean()])).optional(),
   /** Effects granted to the winner; runners-up receive nothing. */
   rewards: EffectListSchema,
 });
@@ -159,6 +164,26 @@ function duplicateIds(ids: readonly string[]): string[] {
     seen.add(id);
   }
   return [...duplicates].sort();
+}
+
+/**
+ * Indices of `WARP` effects whose declared targets are not present in the
+ * supplied id sets. `validateEffectList` only checks that *some* target was
+ * declared; a target that does not exist would silently NOOP at runtime.
+ */
+function danglingWarpEffects(
+  effects: readonly Effect[],
+  ringIds: ReadonlySet<string>,
+  centerIds: ReadonlySet<string>,
+): number[] {
+  const dangling: number[] = [];
+  effects.forEach((effect, index) => {
+    if (effect.kind !== 'WARP') return;
+    const tileOk = effect.tileId === undefined || ringIds.has(effect.tileId);
+    const nodeOk = effect.nodeId === undefined || centerIds.has(effect.nodeId);
+    if (!tileOk || !nodeOk) dangling.push(index);
+  });
+  return dangling;
 }
 
 /** Semantic + topological map validation. Returns all problems found. */
@@ -189,6 +214,11 @@ export function validateMapDefinition(map: MapDefinition): string[] {
     }
     if (tile.type === 'PROPERTY' && tile.price === undefined) {
       issues.push(`PROPERTY tile ${tile.id} is missing a price`);
+    }
+    if (tile.type === 'PROPERTY' && tile.group === undefined) {
+      // The UI legend and value tiers key on the group, so a missing group is
+      // silently unrenderable content rather than a styling choice.
+      issues.push(`PROPERTY tile ${tile.id} is missing a group`);
     }
     if (tile.type !== 'PROPERTY' && tile.price !== undefined) {
       issues.push(`non-PROPERTY tile ${tile.id} must not declare a price`);
@@ -245,6 +275,17 @@ export function validateMapDefinition(map: MapDefinition): string[] {
     for (const issue of validateEffectList(tile.onEnter)) {
       issues.push(`ring tile ${tile.id} onEnter: ${issue}`);
     }
+    for (const index of danglingWarpEffects(tile.onEnter, ringIds, centerIds)) {
+      issues.push(`ring tile ${tile.id} onEnter: effect[${String(index)}] WARP target is unknown`);
+    }
+  }
+
+  for (const node of center) {
+    // `c_exit`-style teleports read `payloadRef` as a ring tile id; a typo would
+    // silently return the visitor to their entry tile instead.
+    if (node.type === 'TELEPORT' && !ringIds.has(node.payloadRef)) {
+      issues.push(`center node ${node.id} teleports to unknown ring tile ${node.payloadRef}`);
+    }
   }
 
   for (const id of duplicateIds(map.events)) {
@@ -278,6 +319,36 @@ export function validateContentPack(pack: ContentPack): string[] {
   if (characterIds.size < 2) issues.push('at least two characters are required');
 
   const eventIds = new Set(pack.chaosEvents.map((entry) => entry.id));
+  const skillIds = new Set(pack.characters.map((entry) => entry.skill.id));
+  const activeSkillIds = new Set(
+    pack.characters.filter((entry) => entry.skill.type === 'ACTIVE').map((entry) => entry.skill.id),
+  );
+  // Effect-level WARP targets are global (a skill or chaos event can be used on
+  // any map), so they only need to resolve on at least one board.
+  const boardRingIds = new Set<string>();
+  const boardCenterIds = new Set<string>();
+  for (const map of pack.maps) {
+    for (const tile of map.board.ring) boardRingIds.add(tile.id);
+    for (const node of map.board.center) boardCenterIds.add(node.id);
+  }
+
+  /** Cross-references that a skill or chaos event can silently fail on. */
+  function checkEffectReferences(where: string, effects: readonly Effect[]): void {
+    for (const index of danglingWarpEffects(effects, boardRingIds, boardCenterIds)) {
+      issues.push(`${where}: effect[${String(index)}] WARP target is unknown on every map`);
+    }
+    for (const effect of effects) {
+      if (effect.kind !== 'SKILL') continue;
+      if (!skillIds.has(effect.skillId)) {
+        issues.push(`${where}: unknown skill ${effect.skillId}`);
+      } else if (activeSkillIds.has(effect.skillId)) {
+        // Invoking an ACTIVE skill through the effect DSL would bypass its
+        // cooldown, which is the only thing keeping it finite.
+        issues.push(`${where}: must not invoke ACTIVE skill ${effect.skillId}`);
+      }
+    }
+  }
+
   for (const map of pack.maps) {
     for (const issue of validateMapDefinition(map)) {
       issues.push(`map ${map.id}: ${issue}`);
@@ -285,6 +356,13 @@ export function validateContentPack(pack: ContentPack): string[] {
     for (const eventId of map.events) {
       if (!eventIds.has(eventId)) {
         issues.push(`map ${map.id}: unknown chaos event ${eventId}`);
+      }
+    }
+    for (const node of map.board.center) {
+      if (node.type === 'EVENT' && !eventIds.has(node.payloadRef)) {
+        issues.push(
+          `map ${map.id}: center node ${node.id} references unknown chaos event ${node.payloadRef}`,
+        );
       }
     }
   }
@@ -316,18 +394,21 @@ export function validateContentPack(pack: ContentPack): string[] {
         issues.push(`skill ${skill.id}: ON_PAY supports only STATUS RENT_BOOST effects`);
       }
     }
+    checkEffectReferences(`skill ${skill.id}`, skill.effect);
   }
 
   for (const event of pack.chaosEvents) {
     for (const issue of validateEffectList(event.effect)) {
       issues.push(`chaos event ${event.id}: ${issue}`);
     }
+    checkEffectReferences(`chaos event ${event.id}`, event.effect);
   }
 
   for (const minigame of pack.miniGames) {
     for (const issue of validateEffectList(minigame.rewards)) {
       issues.push(`minigame ${minigame.id}: ${issue}`);
     }
+    checkEffectReferences(`minigame ${minigame.id}`, minigame.rewards);
     if (minigame.minPlayers > minigame.maxPlayers) {
       issues.push(`minigame ${minigame.id}: minPlayers exceeds maxPlayers`);
     }

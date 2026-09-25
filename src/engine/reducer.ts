@@ -955,6 +955,7 @@ function resolveMiniGame(session: GameSession, state: GameState, emitter: Emitte
     cursor: state.rngCursor,
     participantIds: minigame.participantIds,
     submissions: minigame.submissions,
+    ...(definition.rules === undefined ? {} : { rules: definition.rules }),
   });
   let next: GameState = { ...state, rngCursor: outcome.cursor };
   const ranked = [...outcome.ranks].sort((a, b) => a[1] - b[1]);

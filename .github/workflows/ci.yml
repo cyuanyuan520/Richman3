@@ -39,6 +39,9 @@ jobs:
       - name: Lint
         run: pnpm lint
 
+      - name: Copyright check
+        run: pnpm check:copyright
+
       - name: Unit tests
         run: pnpm test
 

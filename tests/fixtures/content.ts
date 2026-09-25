@@ -76,7 +76,7 @@ export const TEST_MAP: MapDefinition = {
     ],
     center: [
       { id: 'c_wheel', kind: 'center', type: 'MINIGAME', name: '幸运转盘', payloadRef: 'mg_wheel' },
-      { id: 'c_plaza', kind: 'center', type: 'EVENT', name: '中央广场', payloadRef: 'celebration' },
+      { id: 'c_plaza', kind: 'center', type: 'EVENT', name: '中央广场', payloadRef: 'chaos_gain' },
       { id: 'c_exit', kind: 'center', type: 'TELEPORT', name: '直达电梯', payloadRef: 't0' },
       { id: 'c_shop', kind: 'center', type: 'SHOP', name: '道具铺', payloadRef: 'mg_gacha' },
     ],
@@ -111,7 +111,7 @@ export const TEST_CHARACTERS: Character[] = [
   },
   {
     id: 'char_girl',
-    name: '元气小妹·糖糖',
+    name: '元气小妹·果果',
     archetype: 'girl',
     modelRef: 'char_girl',
     portraitRef: 'portrait_girl',

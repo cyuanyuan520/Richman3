@@ -344,4 +344,82 @@ describe('content pack: the JSON boundary rejects broken data', () => {
     });
     expect(() => buildContentPack(broken)).not.toThrow();
   });
+
+  it('rejects a PROPERTY tile without a group', () => {
+    const broken = withPack((pack) => {
+      const ring = boardOf(pack).ring as Record<string, unknown>[];
+      const property = ring.find((tile) => tile.type === 'PROPERTY');
+      if (property === undefined) throw new Error('no property');
+      delete property.group;
+    });
+    expect(() => buildContentPack(broken)).toThrow(/missing a group/);
+  });
+
+  it('rejects a TELEPORT node pointing at a ring tile that does not exist', () => {
+    const broken = withPack((pack) => {
+      const center = boardOf(pack).center as Record<string, unknown>[];
+      const teleport = center.find((node) => node.type === 'TELEPORT');
+      if (teleport === undefined) throw new Error('no TELEPORT node');
+      teleport.payloadRef = 't99';
+    });
+    expect(() => buildContentPack(broken)).toThrow(/teleports to unknown ring tile t99/);
+  });
+
+  it('rejects an EVENT node that names a chaos event the pack does not define', () => {
+    const broken = withPack((pack) => {
+      const center = boardOf(pack).center as Record<string, unknown>[];
+      const event = center.find((node) => node.type === 'EVENT');
+      if (event === undefined) throw new Error('no EVENT node');
+      event.payloadRef = 'chaos_does_not_exist';
+    });
+    expect(() => buildContentPack(broken)).toThrow(
+      /references unknown chaos event chaos_does_not_exist/,
+    );
+  });
+
+  it('rejects an onEnter effect that warps to a tile outside the board', () => {
+    const broken = withPack((pack) => {
+      const ring = boardOf(pack).ring as Record<string, unknown>[];
+      const tile = ring.find((entry) => entry.type === 'CHAOS');
+      if (tile === undefined) throw new Error('no CHAOS tile');
+      tile.onEnter = [{ kind: 'WARP', tileId: 't99' }];
+    });
+    expect(() => buildContentPack(broken)).toThrow(/WARP target is unknown/);
+  });
+
+  it('rejects a chaos event that invokes a skill the pack does not define', () => {
+    const broken = withPack((pack) => {
+      const events = pack.chaosEvents as Record<string, unknown>[];
+      const event = events[0];
+      if (event === undefined) throw new Error('no event');
+      event.effect = [{ kind: 'SKILL', skillId: 'skill_does_not_exist' }];
+    });
+    expect(() => buildContentPack(broken)).toThrow(/unknown skill skill_does_not_exist/);
+  });
+
+  it('rejects a chaos event that invokes an ACTIVE skill directly', () => {
+    const broken = withPack((pack) => {
+      const characters = pack.characters as Record<string, unknown>[];
+      const active = characters.find(
+        (character) => (character.skill as Record<string, unknown>).type === 'ACTIVE',
+      );
+      if (active === undefined) throw new Error('no ACTIVE skill');
+      const activeSkillId = (active.skill as Record<string, unknown>).id;
+      const events = pack.chaosEvents as Record<string, unknown>[];
+      const event = events[0];
+      if (event === undefined) throw new Error('no event');
+      event.effect = [{ kind: 'SKILL', skillId: activeSkillId }];
+    });
+    expect(() => buildContentPack(broken)).toThrow(/must not invoke ACTIVE skill/);
+  });
+
+  it('rejects a chaos event that warps to a tile no map defines', () => {
+    const broken = withPack((pack) => {
+      const events = pack.chaosEvents as Record<string, unknown>[];
+      const event = events[0];
+      if (event === undefined) throw new Error('no event');
+      event.effect = [{ kind: 'WARP', tileId: 'nowhere' }];
+    });
+    expect(() => buildContentPack(broken)).toThrow(/WARP target is unknown on every map/);
+  });
 });

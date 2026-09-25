@@ -15,17 +15,35 @@ import type { GameSession } from '../src/engine/reducer';
 import { patchSession, placeOnRing } from './fixtures/content';
 
 /**
- * Wall-clock estimate used only to interpret round counts against AC-014.
+ * Pacing proxy for AC-014 — this is NOT a verification of it.
+ *
+ * AC-014 asks for a 60-90 minute session, which is a *human wall-clock*
+ * property. What we can measure here is AI auto-play round counts, and the AI
+ * never hesitates, so a human game is strictly longer.
+ *
  * A round is four player turns; at ~25 s per turn including animations and
- * decisions that is roughly 1.75 minutes per round, so the 60-90 minute target
- * spans about 34-52 rounds. Measured AI auto-play (12 seeds, ASSET_TARGET 3)
- * gives min 34 / median 41 / max 51 rounds, i.e. ~60-89 minutes.
+ * decisions that is roughly 1.75 minutes per round, putting the 60-90 minute
+ * target at ~34-52 rounds.
+ *
+ * Measured with the shipped tuning over 30 seeds: 21/30 land inside the band,
+ * the median is 48 rounds (~84 min), and the worst case is 68 rounds
+ * (~119 min). That long tail is a real, recorded gap: the default
+ * `ASSET_TARGET 3` preset can outlast the target on unlucky seeds, and it did
+ * not move under any of the six economy variants probed (see the deepwork
+ * file, §8e). Closing it needs human timing data, so AC-014 stays UNVERIFIED
+ * and this test guards central pacing plus runaway/ stunted games rather than
+ * the tail.
  */
 const MINUTES_PER_ROUND = 1.75;
 const SESSION_MIN_ROUNDS = Math.floor(60 / MINUTES_PER_ROUND);
 const SESSION_MAX_ROUNDS = Math.ceil(90 / MINUTES_PER_ROUND);
-/** Ceiling that still indicates a healthy game rather than a runaway one. */
-const RUNAWAY_ROUNDS = 75;
+/** ~131 minutes: beyond this a game is a runaway rather than merely long. */
+const HARD_CEILING_ROUNDS = 75;
+/** ~42 minutes: below this a game is stunted rather than merely brisk. */
+const HARD_FLOOR_ROUNDS = 24;
+const BAND_SEEDS = 30;
+/** The measured tail means the band cannot be asserted seed by seed. */
+const MIN_RUNS_IN_BAND = 0.7;
 
 function nextActor(session: GameSession): string | null {
   const state = session.state;
@@ -96,9 +114,9 @@ describe('launch content: full games with the AI', () => {
     expect(hashState(first.session.state)).toBe(hashState(second.session.state));
   });
 
-  it('lands the shipped default preset in the 60-90 minute band (AC-014)', () => {
+  it('keeps the shipped default preset near the 60-90 minute band (AC-014 pacing proxy)', () => {
     const rounds: number[] = [];
-    for (let index = 0; index < 9; index += 1) {
+    for (let index = 0; index < BAND_SEEDS; index += 1) {
       const { session } = autoPlay(
         newSession(`city-band-${String(index)}`, { kind: 'ASSET_TARGET', value: 3 }),
       );
@@ -106,13 +124,19 @@ describe('launch content: full games with the AI', () => {
       expect(session.state.winnerId).not.toBeNull();
       rounds.push(session.state.turn);
     }
-    // Human play is slower than the AI, so this is a lower bound on wall clock;
-    // the point is to catch runaway or stunted games, not to model a player.
-    for (const turn of rounds) expect(turn).toBeLessThanOrEqual(RUNAWAY_ROUNDS);
+    // Runaway and stunted games must not slip through, even seed by seed.
+    for (const turn of rounds) {
+      expect(turn).toBeGreaterThanOrEqual(HARD_FLOOR_ROUNDS);
+      expect(turn).toBeLessThanOrEqual(HARD_CEILING_ROUNDS);
+    }
     const sorted = [...rounds].sort((a, b) => a - b);
     const median = sorted[Math.floor(sorted.length / 2)] ?? 0;
     expect(median).toBeGreaterThanOrEqual(SESSION_MIN_ROUNDS);
     expect(median).toBeLessThanOrEqual(SESSION_MAX_ROUNDS);
+    const inBand = rounds.filter(
+      (turn) => turn >= SESSION_MIN_ROUNDS && turn <= SESSION_MAX_ROUNDS,
+    ).length;
+    expect(inBand / rounds.length).toBeGreaterThanOrEqual(MIN_RUNS_IN_BAND);
   });
 
   it('reaches the classic 2x asset target quickly', () => {
