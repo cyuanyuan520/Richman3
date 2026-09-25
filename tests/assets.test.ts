@@ -145,3 +145,24 @@ describe('asset manifest', () => {
     }
   });
 });
+
+describe('committed binaries', () => {
+  it('are valid glTF 2.0 containers whose declared length matches the file', () => {
+    for (const asset of manifest.assets) {
+      if (!('glbPath' in asset)) continue;
+      const bytes = readFileSync(asset.glbPath);
+      expect(bytes.toString('ascii', 0, 4), asset.key).toBe('glTF');
+      expect(bytes.readUInt32LE(4), asset.key).toBe(2);
+      expect(bytes.readUInt32LE(8), asset.key).toBe(bytes.length);
+    }
+  });
+
+  it('are valid PNGs for every portrait', () => {
+    const signature = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+    for (const asset of manifest.assets) {
+      if (!('pngPath' in asset)) continue;
+      const bytes = readFileSync(asset.pngPath);
+      expect(bytes.subarray(0, 8).equals(signature), asset.key).toBe(true);
+    }
+  });
+});

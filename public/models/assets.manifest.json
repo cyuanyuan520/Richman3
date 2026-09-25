@@ -7,7 +7,7 @@
         2.12,
         0.24
       ],
-      "bytes": 7856,
+      "bytes": 6228,
       "glbPath": "public/models/city.road.glb",
       "key": "city.road",
       "materials": [
@@ -30,7 +30,7 @@
         2.12,
         0.8
       ],
-      "bytes": 9340,
+      "bytes": 7376,
       "glbPath": "public/models/city.start_station.glb",
       "key": "city.start_station",
       "materials": [
@@ -54,7 +54,7 @@
         2.16,
         1.41
       ],
-      "bytes": 13572,
+      "bytes": 10748,
       "glbPath": "public/models/city.shop_convenience.glb",
       "key": "city.shop_convenience",
       "materials": [
@@ -81,7 +81,7 @@
         2.12,
         1.46
       ],
-      "bytes": 14588,
+      "bytes": 11588,
       "glbPath": "public/models/city.shop_tea.glb",
       "key": "city.shop_tea",
       "materials": [
@@ -98,8 +98,8 @@
         "building",
         "group:yellow"
       ],
-      "triangles": 130,
-      "vertices": 85
+      "triangles": 132,
+      "vertices": 86
     },
     {
       "animated": false,
@@ -108,7 +108,7 @@
         2.12,
         1.95
       ],
-      "bytes": 10908,
+      "bytes": 8724,
       "glbPath": "public/models/city.chance_billboard.glb",
       "key": "city.chance_billboard",
       "materials": [
@@ -122,8 +122,8 @@
         "tile",
         "prop"
       ],
-      "triangles": 108,
-      "vertices": 68
+      "triangles": 112,
+      "vertices": 70
     },
     {
       "animated": false,
@@ -132,7 +132,7 @@
         2.12,
         1.5
       ],
-      "bytes": 45688,
+      "bytes": 35640,
       "glbPath": "public/models/city.park.glb",
       "key": "city.park",
       "materials": [
@@ -147,8 +147,8 @@
         "tile",
         "prop"
       ],
-      "triangles": 560,
-      "vertices": 300
+      "triangles": 568,
+      "vertices": 304
     },
     {
       "animated": false,
@@ -157,7 +157,7 @@
         2.12,
         1.45
       ],
-      "bytes": 13860,
+      "bytes": 10992,
       "glbPath": "public/models/city.hospital_pet.glb",
       "key": "city.hospital_pet",
       "materials": [
@@ -182,7 +182,7 @@
         2.12,
         1.8
       ],
-      "bytes": 16764,
+      "bytes": 13240,
       "glbPath": "public/models/city.tax_office.glb",
       "key": "city.tax_office",
       "materials": [
@@ -199,8 +199,8 @@
         "building",
         "group:red"
       ],
-      "triangles": 176,
-      "vertices": 112
+      "triangles": 180,
+      "vertices": 114
     },
     {
       "animated": false,
@@ -209,7 +209,7 @@
         2.12,
         1.2
       ],
-      "bytes": 10920,
+      "bytes": 8636,
       "glbPath": "public/models/city.wall_mural.glb",
       "key": "city.wall_mural",
       "materials": [
@@ -235,7 +235,7 @@
         2.12,
         1.25
       ],
-      "bytes": 12632,
+      "bytes": 10056,
       "glbPath": "public/models/city.metro_entrance.glb",
       "key": "city.metro_entrance",
       "materials": [
@@ -250,8 +250,8 @@
         "warp",
         "landmark"
       ],
-      "triangles": 136,
-      "vertices": 84
+      "triangles": 140,
+      "vertices": 86
     },
     {
       "animated": false,
@@ -260,7 +260,7 @@
         2.12,
         0.9
       ],
-      "bytes": 13468,
+      "bytes": 10644,
       "glbPath": "public/models/city.delivery_hub.glb",
       "key": "city.delivery_hub",
       "materials": [
@@ -287,7 +287,7 @@
         2.12,
         0.57
       ],
-      "bytes": 11576,
+      "bytes": 9284,
       "glbPath": "public/models/city.bike_graveyard.glb",
       "key": "city.bike_graveyard",
       "materials": [
@@ -312,7 +312,7 @@
         2.12,
         2.2
       ],
-      "bytes": 15672,
+      "bytes": 12568,
       "glbPath": "public/models/city.chaos_house.glb",
       "key": "city.chaos_house",
       "materials": [
@@ -329,8 +329,8 @@
         "building",
         "chaos"
       ],
-      "triangles": 146,
-      "vertices": 95
+      "triangles": 152,
+      "vertices": 98
     },
     {
       "animated": false,
@@ -339,7 +339,7 @@
         2.12,
         1.9
       ],
-      "bytes": 16336,
+      "bytes": 12832,
       "glbPath": "public/models/city.office_tower.glb",
       "key": "city.office_tower",
       "materials": [
@@ -364,7 +364,7 @@
         2.12,
         1.8
       ],
-      "bytes": 16332,
+      "bytes": 12900,
       "glbPath": "public/models/city.studio.glb",
       "key": "city.studio",
       "materials": [
@@ -381,8 +381,8 @@
         "building",
         "group:red"
       ],
-      "triangles": 168,
-      "vertices": 108
+      "triangles": 172,
+      "vertices": 110
     },
     {
       "animated": false,
@@ -391,7 +391,7 @@
         2.12,
         1.56
       ],
-      "bytes": 14764,
+      "bytes": 11560,
       "glbPath": "public/models/city.mall.glb",
       "key": "city.mall",
       "materials": [
@@ -418,7 +418,7 @@
         2.12,
         2.17
       ],
-      "bytes": 33016,
+      "bytes": 25768,
       "glbPath": "public/models/city.hotel_luxe.glb",
       "key": "city.hotel_luxe",
       "materials": [
@@ -445,7 +445,7 @@
         2.12,
         1.21
       ],
-      "bytes": 13392,
+      "bytes": 10772,
       "glbPath": "public/models/city.jail.glb",
       "key": "city.jail",
       "materials": [
@@ -459,8 +459,8 @@
         "tile",
         "building"
       ],
-      "triangles": 144,
-      "vertices": 92
+      "triangles": 156,
+      "vertices": 98
     },
     {
       "animated": false,
@@ -469,7 +469,7 @@
         2.12,
         1.35
       ],
-      "bytes": 12328,
+      "bytes": 9920,
       "glbPath": "public/models/city.golf.glb",
       "key": "city.golf",
       "materials": [
@@ -484,8 +484,8 @@
         "tile",
         "prop"
       ],
-      "triangles": 110,
-      "vertices": 71
+      "triangles": 116,
+      "vertices": 74
     },
     {
       "animated": false,
@@ -494,7 +494,7 @@
         2.12,
         2.1
       ],
-      "bytes": 18012,
+      "bytes": 14148,
       "glbPath": "public/models/city.finance_center.glb",
       "key": "city.finance_center",
       "materials": [
@@ -519,7 +519,7 @@
         2.12,
         0.92
       ],
-      "bytes": 12464,
+      "bytes": 9936,
       "glbPath": "public/models/city.bonus_chest.glb",
       "key": "city.bonus_chest",
       "materials": [
@@ -534,8 +534,8 @@
         "tile",
         "bonus"
       ],
-      "triangles": 120,
-      "vertices": 76
+      "triangles": 124,
+      "vertices": 78
     },
     {
       "animated": false,
@@ -544,7 +544,7 @@
         2.12,
         3.25
       ],
-      "bytes": 21900,
+      "bytes": 17244,
       "glbPath": "public/models/city.skyscraper.glb",
       "key": "city.skyscraper",
       "materials": [
@@ -560,8 +560,8 @@
         "building",
         "group:gold"
       ],
-      "triangles": 248,
-      "vertices": 164
+      "triangles": 252,
+      "vertices": 166
     },
     {
       "animated": false,
@@ -570,7 +570,7 @@
         2.12,
         1.3
       ],
-      "bytes": 14724,
+      "bytes": 11528,
       "glbPath": "public/models/city.tax_bureau.glb",
       "key": "city.tax_bureau",
       "materials": [
@@ -597,7 +597,7 @@
         2.12,
         1.75
       ],
-      "bytes": 16948,
+      "bytes": 13324,
       "glbPath": "public/models/city.apartment_old.glb",
       "key": "city.apartment_old",
       "materials": [
@@ -624,7 +624,7 @@
         2.12,
         1.25
       ],
-      "bytes": 10896,
+      "bytes": 8572,
       "glbPath": "public/models/city.lost_and_found.glb",
       "key": "city.lost_and_found",
       "materials": [
@@ -650,7 +650,7 @@
         2.12,
         0.95
       ],
-      "bytes": 10464,
+      "bytes": 8292,
       "glbPath": "public/models/city.underpass.glb",
       "key": "city.underpass",
       "materials": [
@@ -674,7 +674,7 @@
         2.12,
         1.56
       ],
-      "bytes": 28984,
+      "bytes": 22712,
       "glbPath": "public/models/city.event_plaza.glb",
       "key": "city.event_plaza",
       "materials": [
@@ -690,8 +690,8 @@
         "landmark",
         "event"
       ],
-      "triangles": 340,
-      "vertices": 186
+      "triangles": 344,
+      "vertices": 188
     },
     {
       "animated": false,
@@ -700,7 +700,7 @@
         2.12,
         1.65
       ],
-      "bytes": 27036,
+      "bytes": 21088,
       "glbPath": "public/models/city.gacha_gate.glb",
       "key": "city.gacha_gate",
       "materials": [
@@ -726,7 +726,7 @@
         2.12,
         1.65
       ],
-      "bytes": 16400,
+      "bytes": 13108,
       "glbPath": "public/models/city.minigame_park.glb",
       "key": "city.minigame_park",
       "materials": [
@@ -743,8 +743,8 @@
         "landmark",
         "minigame"
       ],
-      "triangles": 172,
-      "vertices": 104
+      "triangles": 180,
+      "vertices": 108
     },
     {
       "animated": false,
@@ -753,7 +753,7 @@
         2.12,
         1.25
       ],
-      "bytes": 10452,
+      "bytes": 8264,
       "glbPath": "public/models/city.escalator.glb",
       "key": "city.escalator",
       "materials": [
@@ -777,7 +777,7 @@
         2.12,
         2.32
       ],
-      "bytes": 10404,
+      "bytes": 8248,
       "glbPath": "public/models/city.express_lift.glb",
       "key": "city.express_lift",
       "materials": [
@@ -801,7 +801,7 @@
         2.12,
         1.3
       ],
-      "bytes": 12468,
+      "bytes": 9952,
       "glbPath": "public/models/city.house_1.glb",
       "key": "city.house_1",
       "materials": [
@@ -817,8 +817,8 @@
         "house",
         "level:1"
       ],
-      "triangles": 120,
-      "vertices": 76
+      "triangles": 124,
+      "vertices": 78
     },
     {
       "animated": false,
@@ -827,7 +827,7 @@
         2.12,
         1.64
       ],
-      "bytes": 14280,
+      "bytes": 11380,
       "glbPath": "public/models/city.house_2.glb",
       "key": "city.house_2",
       "materials": [
@@ -843,8 +843,8 @@
         "house",
         "level:2"
       ],
-      "triangles": 144,
-      "vertices": 92
+      "triangles": 148,
+      "vertices": 94
     },
     {
       "animated": false,
@@ -853,7 +853,7 @@
         2.12,
         1.98
       ],
-      "bytes": 15892,
+      "bytes": 12600,
       "glbPath": "public/models/city.house_3.glb",
       "key": "city.house_3",
       "materials": [
@@ -869,8 +869,8 @@
         "house",
         "level:3"
       ],
-      "triangles": 168,
-      "vertices": 108
+      "triangles": 172,
+      "vertices": 110
     },
     {
       "animated": false,
@@ -879,7 +879,7 @@
         2.12,
         2.76
       ],
-      "bytes": 18464,
+      "bytes": 14680,
       "glbPath": "public/models/city.house_4.glb",
       "key": "city.house_4",
       "materials": [
@@ -896,8 +896,8 @@
         "house",
         "level:4"
       ],
-      "triangles": 190,
-      "vertices": 121
+      "triangles": 196,
+      "vertices": 124
     },
     {
       "animated": false,
@@ -906,7 +906,7 @@
         0.765,
         0.74
       ],
-      "bytes": 13244,
+      "bytes": 10856,
       "glbPath": "public/models/city.dice.glb",
       "key": "city.dice",
       "materials": [
@@ -918,8 +918,8 @@
         "prop",
         "dice"
       ],
-      "triangles": 180,
-      "vertices": 104
+      "triangles": 204,
+      "vertices": 116
     },
     {
       "animated": false,
@@ -928,7 +928,7 @@
         1.08,
         1.19
       ],
-      "bytes": 29588,
+      "bytes": 23236,
       "glbPath": "public/models/char_farmer.glb",
       "key": "char_farmer",
       "materials": [
@@ -941,17 +941,17 @@
         "character",
         "archetype:farmer"
       ],
-      "triangles": 382,
-      "vertices": 203
+      "triangles": 392,
+      "vertices": 208
     },
     {
       "animated": false,
       "bounds": [
         0.8,
-        0.6,
+        0.585,
         1.02
       ],
-      "bytes": 56984,
+      "bytes": 44152,
       "glbPath": "public/models/char_girl.glb",
       "key": "char_girl",
       "materials": [
@@ -963,8 +963,8 @@
         "character",
         "archetype:girl"
       ],
-      "triangles": 748,
-      "vertices": 386
+      "triangles": 752,
+      "vertices": 388
     },
     {
       "animated": false,
@@ -973,7 +973,7 @@
         0.76,
         1.48
       ],
-      "bytes": 44196,
+      "bytes": 34444,
       "glbPath": "public/models/char_madame.glb",
       "key": "char_madame",
       "materials": [
@@ -986,17 +986,17 @@
         "character",
         "archetype:madame"
       ],
-      "triangles": 576,
-      "vertices": 300
+      "triangles": 584,
+      "vertices": 304
     },
     {
       "animated": false,
       "bounds": [
         0.78,
-        0.6,
+        0.585,
         0.97
       ],
-      "bytes": 28788,
+      "bytes": 22616,
       "glbPath": "public/models/char_ninja.glb",
       "key": "char_ninja",
       "materials": [
@@ -1009,12 +1009,12 @@
         "character",
         "archetype:ninja"
       ],
-      "triangles": 372,
-      "vertices": 198
+      "triangles": 380,
+      "vertices": 202
     },
     {
       "animated": false,
-      "bytes": 36786,
+      "bytes": 36572,
       "key": "portrait_farmer",
       "pngPath": "public/models/portrait_farmer.png",
       "scale": 1.0,
@@ -1025,7 +1025,7 @@
     },
     {
       "animated": false,
-      "bytes": 31697,
+      "bytes": 31067,
       "key": "portrait_girl",
       "pngPath": "public/models/portrait_girl.png",
       "scale": 1.0,
@@ -1036,7 +1036,7 @@
     },
     {
       "animated": false,
-      "bytes": 38521,
+      "bytes": 38369,
       "key": "portrait_madame",
       "pngPath": "public/models/portrait_madame.png",
       "scale": 1.0,
@@ -1047,7 +1047,7 @@
     },
     {
       "animated": false,
-      "bytes": 30336,
+      "bytes": 29965,
       "key": "portrait_ninja",
       "pngPath": "public/models/portrait_ninja.png",
       "scale": 1.0,

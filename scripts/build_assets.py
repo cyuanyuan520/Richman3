@@ -432,47 +432,193 @@ def RECIPES() -> dict[str, dict[str, Any]]:  # noqa: N802 - reads as a table
 # Geometry
 # --------------------------------------------------------------------------- #
 
+# Parts are turned into vertices and faces here rather than through `bpy.ops`
+# primitives. The operators are convenient, but their output is not byte-stable
+# across runs (the UV sphere in particular), which makes committed artefacts
+# churn on every rebuild. Generating the geometry explicitly keeps the pipeline
+# reproducible: the same config and the same code give the same bytes.
 
-def add_part(part: dict[str, Any], palette: dict[str, str]) -> Any:
-    kind = part['kind']
-    x, y, z = part['at']
-    if kind == 'box':
-        width, depth, height = part['size']
-        bpy.ops.mesh.primitive_cube_add(size=1.0, location=(x, y, z))
-        obj = bpy.context.active_object
-        obj.scale = (width, depth, height)
-    elif kind == 'cylinder':
-        bpy.ops.mesh.primitive_cylinder_add(
-            vertices=part['sides'], radius=part['radius'], depth=part['depth'], location=(x, y, z)
-        )
-        obj = bpy.context.active_object
-    elif kind == 'cone':
-        bpy.ops.mesh.primitive_cone_add(
-            vertices=part['sides'], radius1=part['radius'], radius2=0.0, depth=part['depth'], location=(x, y, z)
-        )
-        obj = bpy.context.active_object
-    elif kind == 'sphere':
-        bpy.ops.mesh.primitive_uv_sphere_add(segments=16, ring_count=8, radius=part['radius'], location=(x, y, z))
-        obj = bpy.context.active_object
-    else:  # pragma: no cover - guarded by the recipe table
-        raise ValueError(f'unknown part kind: {kind}')
 
-    if part.get('turn'):
-        obj.rotation_euler[2] = part['turn']
-    bpy.ops.object.transform_apply(location=False, rotation=True, scale=True)
-    material = material_for(part['colour'], palette)
-    obj.data.materials.append(material)
-    return obj
+def place(
+    point: tuple[float, float, float], origin: tuple[float, float, float], turn: float
+) -> tuple[float, float, float]:
+    """Move a point given relative to the part origin into asset space."""
+    cosine = math.cos(turn)
+    sine = math.sin(turn)
+    x, y, z = point
+    return (
+        origin[0] + x * cosine - y * sine,
+        origin[1] + x * sine + y * cosine,
+        origin[2] + z,
+    )
+
+
+def box_geometry(part: dict[str, Any]) -> tuple[list[tuple[float, float, float]], list[tuple[int, ...]]]:
+    width, depth, height = part['size']
+    x, y, z = (value / 2.0 for value in (width, depth, height))
+    corners = [
+        (-x, -y, -z),
+        (x, -y, -z),
+        (x, y, -z),
+        (-x, y, -z),
+        (-x, -y, z),
+        (x, -y, z),
+        (x, y, z),
+        (-x, y, z),
+    ]
+    faces = [
+        (0, 3, 2, 1),
+        (4, 5, 6, 7),
+        (0, 1, 5, 4),
+        (1, 2, 6, 5),
+        (2, 3, 7, 6),
+        (3, 0, 4, 7),
+    ]
+    return corners, faces
+
+
+def cylinder_geometry(
+    part: dict[str, Any],
+) -> tuple[list[tuple[float, float, float]], list[tuple[int, ...]]]:
+    sides = part['sides']
+    radius = part['radius']
+    half = part['depth'] / 2.0
+    ring = [
+        (
+            radius * math.cos(2.0 * math.pi * index / sides),
+            radius * math.sin(2.0 * math.pi * index / sides),
+        )
+        for index in range(sides)
+    ]
+    points = [(x, y, -half) for x, y in ring] + [(x, y, half) for x, y in ring]
+    points.append((0.0, 0.0, -half))
+    points.append((0.0, 0.0, half))
+    bottom, top = len(points) - 2, len(points) - 1
+    faces: list[tuple[int, ...]] = []
+    for index in range(sides):
+        following = (index + 1) % sides
+        faces.append((index, following, sides + following, sides + index))
+        faces.append((bottom, following, index))
+        faces.append((top, sides + index, sides + following))
+    return points, faces
+
+
+def cone_geometry(part: dict[str, Any]) -> tuple[list[tuple[float, float, float]], list[tuple[int, ...]]]:
+    sides = part['sides']
+    radius = part['radius']
+    half = part['depth'] / 2.0
+    ring = [
+        (
+            radius * math.cos(2.0 * math.pi * index / sides),
+            radius * math.sin(2.0 * math.pi * index / sides),
+        )
+        for index in range(sides)
+    ]
+    points = [(x, y, -half) for x, y in ring] + [(0.0, 0.0, half), (0.0, 0.0, -half)]
+    apex, centre = len(points) - 2, len(points) - 1
+    faces: list[tuple[int, ...]] = []
+    for index in range(sides):
+        following = (index + 1) % sides
+        faces.append((index, following, apex))
+        faces.append((centre, following, index))
+    return points, faces
+
+
+def sphere_geometry(
+    part: dict[str, Any],
+) -> tuple[list[tuple[float, float, float]], list[tuple[int, ...]]]:
+    segments = 16
+    rings = 8
+    radius = part['radius']
+    points: list[tuple[float, float, float]] = [(0.0, 0.0, radius)]
+    for ring in range(1, rings):
+        phi = math.pi * ring / rings
+        height = radius * math.cos(phi)
+        rho = radius * math.sin(phi)
+        for segment in range(segments):
+            theta = 2.0 * math.pi * segment / segments
+            points.append((rho * math.cos(theta), rho * math.sin(theta), height))
+    points.append((0.0, 0.0, -radius))
+    last = len(points) - 1
+
+    def at(ring: int, segment: int) -> int:
+        return 1 + (ring - 1) * segments + segment % segments
+
+    faces: list[tuple[int, ...]] = []
+    for segment in range(segments):
+        faces.append((0, at(1, segment + 1), at(1, segment)))
+    for ring in range(1, rings - 1):
+        for segment in range(segments):
+            faces.append(
+                (
+                    at(ring, segment),
+                    at(ring, segment + 1),
+                    at(ring + 1, segment + 1),
+                    at(ring + 1, segment),
+                )
+            )
+    for segment in range(segments):
+        faces.append((last, at(rings - 1, segment), at(rings - 1, segment + 1)))
+    return points, faces
+
+
+GEOMETRY = {
+    'box': box_geometry,
+    'cylinder': cylinder_geometry,
+    'cone': cone_geometry,
+    'sphere': sphere_geometry,
+}
 
 
 def validate_recipe(key: str, recipe: dict[str, Any]) -> None:
-    """A recipe is a flat list of part dicts; catch nesting before Blender does."""
+    """A recipe is a flat list of part dicts; catch mistakes before Blender does."""
     for index, part in enumerate(recipe['parts']):
         if not isinstance(part, dict):
             raise TypeError(
                 f'recipe {key}: part {index} is {type(part).__name__}, not a part dict '
                 '(a motif helper returning a list must be unpacked with *)'
             )
+        if part.get('kind') not in GEOMETRY:
+            raise ValueError(f'recipe {key}: part {index} has unknown kind {part.get("kind")!r}')
+
+
+def build_mesh(key: str, parts: list[dict[str, Any]], palette: dict[str, str]) -> Any:
+    """Turn a recipe into one object with one material slot per palette colour."""
+    vertices: list[tuple[float, float, float]] = []
+    faces: list[tuple[int, ...]] = []
+    face_materials: list[int] = []
+    order: list[str] = []
+
+    for part in parts:
+        points, part_faces = GEOMETRY[part['kind']](part)
+        offset = len(vertices)
+        origin = part['at']
+        turn = part.get('turn', 0.0)
+        vertices.extend(place(point, origin, turn) for point in points)
+        colour = part['colour']
+        if colour not in order:
+            order.append(colour)
+        slot = order.index(colour)
+        for face in part_faces:
+            faces.append(tuple(offset + index for index in face))
+            face_materials.append(slot)
+
+    mesh = bpy.data.meshes.new(key)
+    mesh.from_pydata(vertices, [], faces)
+    mesh.validate()
+    mesh.update()
+
+    for colour in order:
+        mesh.materials.append(material_for(colour, palette))
+    for polygon, slot in zip(mesh.polygons, face_materials):
+        polygon.material_index = slot
+        polygon.use_smooth = False
+
+    obj = bpy.data.objects.new(key, mesh)
+    bpy.context.collection.objects.link(obj)
+    obj.select_set(True)
+    bpy.context.view_layer.objects.active = obj
+    return obj
 
 
 def build_asset(
@@ -480,16 +626,7 @@ def build_asset(
 ) -> dict[str, Any]:
     validate_recipe(key, recipe)
     reset_scene()
-    built = [add_part(part, palette) for part in recipe['parts']]
-
-    bpy.ops.object.select_all(action='DESELECT')
-    for obj in built:
-        obj.select_set(True)
-    bpy.context.view_layer.objects.active = built[0]
-    if len(built) > 1:
-        bpy.ops.object.join()
-    asset = bpy.context.active_object
-    asset.name = key
+    asset = build_mesh(key, recipe['parts'], palette)
 
     target = out_dir / f'{key}.glb'
     target.parent.mkdir(parents=True, exist_ok=True)
@@ -497,22 +634,22 @@ def build_asset(
         filepath=str(target),
         export_format='GLB',
         use_selection=True,
-        export_apply=True,
+        export_apply=False,
     )
     return describe(asset, recipe, target, repo_root)
 
 
 def describe(asset: Any, recipe: dict[str, Any], path: Path, repo_root: Path) -> dict[str, Any]:
-    """A structural fingerprint, not a byte fingerprint.
+    """A structural fingerprint rather than a byte fingerprint.
 
-    Float noise and exporter changes make byte equality useless across Blender
-    builds and platforms; shape, material and size are stable.
+    The generator is byte-stable by construction, but the fingerprint is still
+    what CI compares: a Blender upgrade may legitimately change float formatting
+    without changing the kit.
     """
     mesh = asset.data
-    corners = [asset.matrix_world @ Vector(corner) for corner in asset.bound_box]
-    xs = [corner.x for corner in corners]
-    ys = [corner.y for corner in corners]
-    zs = [corner.z for corner in corners]
+    xs = [vertex.co.x for vertex in mesh.vertices]
+    ys = [vertex.co.y for vertex in mesh.vertices]
+    zs = [vertex.co.z for vertex in mesh.vertices]
     return {
         'key': asset.name,
         'glbPath': path.relative_to(repo_root).as_posix(),
@@ -524,22 +661,48 @@ def describe(asset: Any, recipe: dict[str, Any], path: Path, repo_root: Path) ->
         'triangles': sum(len(polygon.vertices) - 2 for polygon in mesh.polygons),
         'materials': sorted({slot.material.name for slot in asset.material_slots if slot.material}),
         'bounds': [
-            round(round(max(xs) - min(xs), 3) if xs else 0.0, 3),
-            round(round(max(ys) - min(ys), 3) if ys else 0.0, 3),
-            round(round(max(zs) - min(zs), 3) if zs else 0.0, 3),
+            round(max(xs) - min(xs), 3),
+            round(max(ys) - min(ys), 3),
+            round(max(zs) - min(zs), 3),
         ],
     }
 
 
 # --------------------------------------------------------------------------- #
+# --------------------------------------------------------------------------- #
 # Portraits
 # --------------------------------------------------------------------------- #
 
 
+def strip_png_text_chunks(path: Path) -> int:
+    """Drop `tEXt`/`zTXt`/`iTXt` chunks and rewrite the file with valid CRCs.
+
+    These carry the render date and Cycles timings, which differ between
+    otherwise identical renders. Returns the number of chunks removed.
+    """
+    data = path.read_bytes()
+    if data[:8] != b'\x89PNG\r\n\x1a\n':
+        raise ValueError(f'{path} is not a PNG')
+    dropped = 0
+    output = bytearray(data[:8])
+    offset = 8
+    while offset < len(data):
+        length = int.from_bytes(data[offset : offset + 4], 'big')
+        kind = data[offset + 4 : offset + 8]
+        chunk = data[offset : offset + 12 + length]
+        if kind in (b'tEXt', b'zTXt', b'iTXt'):
+            dropped += 1
+        else:
+            output += chunk
+        offset += 12 + length
+    if dropped:
+        path.write_bytes(bytes(output))
+    return dropped
+
+
 def render_portrait(archetype: str, out_path: Path, palette: dict[str, str], size: int = 256) -> None:
     reset_scene()
-    for part in character(archetype):
-        add_part(part, palette)
+    build_mesh(f'portrait_{archetype}', character(archetype), palette)
 
     bpy.ops.object.camera_add(location=(0.0, -3.4, 1.05), rotation=(math.radians(90.0), 0.0, 0.0))
     camera = bpy.context.active_object
@@ -557,7 +720,20 @@ def render_portrait(archetype: str, out_path: Path, palette: dict[str, str], siz
     scene.render.resolution_y = size
     scene.render.film_transparent = True
     scene.render.image_settings.file_format = 'PNG'
+    # Cycles samples across threads and its accumulation order is not stable, so
+    # two identical renders can differ in the last bit of a pixel. Pinning the
+    # seed and rendering single-threaded makes the PNG bytes reproducible.
+    scene.cycles.seed = 0
+    scene.cycles.use_animated_seed = False
+    scene.render.threads_mode = 'FIXED'
+    scene.render.threads = 1
     scene.render.filepath = str(out_path)
+    # Blender stamps render metadata into PNG text chunks by default, including
+    # the wall-clock date and Cycles timings, which would make an otherwise
+    # identical render differ byte for byte.
+    for attribute in dir(scene.render):
+        if attribute.startswith('use_stamp'):
+            setattr(scene.render, attribute, False)
     world = bpy.data.worlds.new('PortraitWorld')
     world_tree = world.node_tree
     if world_tree is None:
@@ -566,6 +742,7 @@ def render_portrait(archetype: str, out_path: Path, palette: dict[str, str], siz
     world_tree.nodes['Background'].inputs['Color'].default_value = (0.95, 0.95, 0.95, 1.0)
     scene.world = world
     bpy.ops.render.render(write_still=True)
+    strip_png_text_chunks(out_path)
 
 
 # --------------------------------------------------------------------------- #
@@ -654,8 +831,12 @@ def main() -> int:
         'blender': bpy.app.version_string,
         'assets': entries + portraits,
     }
+    # Explicit newline: Python text mode writes CRLF on Windows, which shows up
+    # as a spurious diff against the LF-normalised index.
     (out_dir / config['manifestName']).write_text(
-        json.dumps(manifest, ensure_ascii=False, indent=2, sort_keys=True) + '\n', encoding='utf-8'
+        json.dumps(manifest, ensure_ascii=False, indent=2, sort_keys=True) + '\n',
+        encoding='utf-8',
+        newline='\n',
     )
     print(f'BUILD_OK {len(entries)} meshes, {len(portraits)} portraits')
     return 0
